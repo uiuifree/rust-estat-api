@@ -33,6 +33,40 @@ Common tasks:
 - Name the values: `data.label(value, Dimension::Time)`.
 - Compare a few areas or tables at once: `stats_datas` with one `StatsDatasRequest` per area or table.
 
+Minimal use (Tokio):
+
+```rust
+use estat_api::{Dimension, EstatApi, StatsDataParams, StatsListParams};
+
+let api = EstatApi::from_env()?; // ESTAT_APP_ID
+let list = api.stats_list(&StatsListParams::new().search_word("人口推計 AND 都道府県").limit(5)).await?;
+let id = &list.datalist_inf.table_inf[0].id;
+let data = api.stats_data_all(&StatsDataParams::table(id).code(Dimension::Area, "13000")).await?;
+for v in data.values() {
+    println!("{:?} {} {:?}", data.label(v, Dimension::Time), v.value, v.as_f64());
+}
+```
+
+Errors:
+
+```rust
+match api.meta_info("0003448237").await {
+    Err(e) if e.is_unauthorized() => {}   // 100: wrong application ID
+    Err(e) if e.is_not_found() => {}      // 300: no table or dataset with that ID
+    Err(e) if e.is_server_error() => {}   // 200-299: retry later
+    Err(e) => eprintln!("{e}"),
+    Ok(meta) => {}
+}
+```
+
+Limits and behaviour:
+
+- `RESULT.STATUS`: 0 success, 1 success with nothing matched (empty lists, not an error), 2 bulk request where some requests matched nothing, 100+ errors (`EstatError::Api`): 100 application ID, 101-105 parameters, 200-299 server, 300 no such ID, 301/302 refused dataset change, 400 bulk over 100,000 values, 401 one bulk request failed.
+- `getStatsData` returns up to 100,000 values per page (`limit`); `NEXT_KEY` (`StatsData::next_key()`) is the next `startPosition`. `stats_data_all` follows it; check the size first with `count_only()`.
+- `getStatsDatas` has no paging and at most 100,000 values for all requests together.
+- Default timeout 5 minutes, because some `getDataCatalog` searches take over a minute; change with `with_timeout`.
+- Empty elements come as `""` and single elements as objects instead of arrays; the types handle both.
+
 e-Stat returns errors in `RESULT.STATUS`; the crate turns 100 and above into `EstatError::Api`. Status 1 (no match) is a success with empty lists. No throttling or retries: the terms of use forbid many requests in a short time, and services using the API must show e-Stat's credit text.
 
 ## Documentation
@@ -41,6 +75,8 @@ e-Stat returns errors in `RESULT.STATUS`; the crate turns 100 and above into `Es
 - [API reference on docs.rs](https://docs.rs/estat-api)
 - [CHANGELOG](https://github.com/uiuifree/rust-estat-api/blob/main/CHANGELOG.md)
 - [examples/search.rs](https://github.com/uiuifree/rust-estat-api/blob/main/examples/search.rs): search tables and print values with names
+- [examples/all_values.rs](https://github.com/uiuifree/rust-estat-api/blob/main/examples/all_values.rs): check the size of a table, then write all its values as CSV
+- [examples/compare_areas.rs](https://github.com/uiuifree/rust-estat-api/blob/main/examples/compare_areas.rs): one bulk request with one request per prefecture
 
 ## Upstream
 

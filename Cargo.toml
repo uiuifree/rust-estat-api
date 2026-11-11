@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.88"
 
 authors = ["uiuifree"]
-description = "Unofficial async Rust client and CLI for the e-Stat API v3.0 (Japanese government statistics): table search, metadata, statistical data with paging, and the data catalog"
+description = "Unofficial async Rust client and CLI for the e-Stat API v3.0, the API of Japan's official statistics portal (政府統計の総合窓口): table search, metadata, statistical data with paging, bulk requests, datasets and the data catalog"
 license = "MIT"
 readme = "README.md"
 

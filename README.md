@@ -20,7 +20,17 @@ manages datasets.
 - `estat` CLI with JSON output, for scripts and AI agents
 
 This crate is not made or endorsed by the Statistics Bureau of Japan or the National Statistics
-Center.
+Center. A summary for AI coding assistants is in [llms.txt](https://github.com/uiuifree/rust-estat-api/blob/main/llms.txt).
+
+| e-Stat API | Method | CLI |
+|------------|--------|-----|
+| `getStatsList` (統計表情報取得) | `stats_list` | `estat list` |
+| `getMetaInfo` (メタ情報取得) | `meta_info` | `estat meta` |
+| `getStatsData` (統計データ取得) | `stats_data`, `stats_data_all` | `estat data` |
+| `getStatsDatas` (統計データ一括取得) | `stats_datas` | `estat datas` |
+| `getDataCatalog` (データカタログ情報取得) | `data_catalog` | `estat catalog` |
+| `refDataset` (データセット参照) | `datasets`, `dataset` | `estat datasets`, `estat dataset` |
+| `postDataset` (データセット登録) | `post_dataset` | `estat register-dataset`, `estat delete-dataset` |
 
 ## 日本語での概要
 
@@ -31,6 +41,34 @@ CLI です。統計表情報取得（`getStatsList`）、メタ情報取得（`g
 `NEXT_KEY` をたどって全件を取得するヘルパーもあります。e-Stat の JSON は要素が 1 つだと配列ではなく
 オブジェクトになるので、どちらで来ても `Vec` として受け取れるようにしています。アプリケーション ID は
 同梱していないので、e-Stat で発行したものを渡してください。
+
+アプリケーション ID（`appId`）は、e-Stat にユーザー登録し、マイページの「API機能（アプリケーションID発行）」で
+発行します。環境変数 `ESTAT_APP_ID` に入れておけば `EstatApi::from_env()` で読み込めます。
+
+統計表 ID（`statsDataId`）を指定して、東京都（地域コード `13000`）の値を取り出す例です。
+
+```rust,no_run
+use estat_api::{Dimension, EstatApi, StatsDataParams};
+
+# async fn run() -> Result<(), estat_api::EstatError> {
+let api = EstatApi::from_env()?;
+// 人口推計 都道府県，年齢（5歳階級），男女別人口
+let params = StatsDataParams::table("0003448237").code(Dimension::Area, "13000");
+let data = api.stats_data_all(&params).await?;
+for value in data.values() {
+    // 時間軸の名前（「2020年10月1日現在」など）と値
+    println!("{:?} {}", data.label(value, Dimension::Time), value.value);
+}
+# Ok(())
+# }
+```
+
+コマンドラインでは次のように使えます。
+
+```bash
+estat list -q "人口推計 AND 都道府県" --limit 10
+estat data 0003448237 --code area=13000 --all --ndjson
+```
 
 ## Setup
 
@@ -288,6 +326,8 @@ Follow the [e-Stat API terms of use](https://www.e-stat.go.jp/api/agreement/). I
 cargo test
 ESTAT_APP_ID=... cargo test --test live -- --ignored --test-threads 1
 ESTAT_APP_ID=... cargo run --example search -- 人口推計
+ESTAT_APP_ID=... cargo run --example all_values -- 0003448237 > values.csv
+ESTAT_APP_ID=... cargo run --example compare_areas -- 13000 27000
 cargo run --features cli -- list -q 人口推計
 ```
 
