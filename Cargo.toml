@@ -1,0 +1,47 @@
+[package]
+name = "estat-api"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+authors = ["uiuifree"]
+description = "Unofficial async Rust client and CLI for the e-Stat API v3.0 (Japanese government statistics): table search, metadata, statistical data with paging, and the data catalog"
+license = "MIT"
+readme = "README.md"
+
+# crates.io allows at most 5 keywords and 5 categories.
+keywords = ["e-stat", "statistics", "japan", "government", "open-data"]
+categories = ["api-bindings", "science", "asynchronous", "command-line-utilities"]
+
+homepage = "https://github.com/uiuifree/rust-estat-api"
+repository = "https://github.com/uiuifree/rust-estat-api"
+documentation = "https://docs.rs/estat-api"
+
+exclude = [".github/", ".idea/", ".claude/"]
+
+[features]
+# `estat` command line tool: cargo install estat-api --features cli
+cli = ["dep:clap", "dep:tokio"]
+
+[dependencies]
+reqwest = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.5", features = ["derive", "env"], optional = true }
+tokio = { version = "1.48", features = ["macros", "rt-multi-thread"], optional = true }
+
+[[bin]]
+name = "estat"
+path = "src/bin/estat.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "cli"
+required-features = ["cli"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dev-dependencies]
+tokio = { version = "1.48", features = ["full"] }
+httpmock = "0.7"

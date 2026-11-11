@@ -1,0 +1,46 @@
+# estat-api
+
+> Unofficial async Rust client for the e-Stat API v3.0 (JSON), the API of Japan's portal site for official statistics. Searches statistical tables, reads their dimensions (metadata), downloads values with filters and paging, and searches the catalog of statistical files. Requires an e-Stat application ID.
+
+Crate name: `estat-api` (import as `estat_api`). MSRV 1.88, Tokio, reqwest.
+
+Use it for: Japanese government statistics such as the census (国勢調査), population estimates (人口推計), labour force survey (労働力調査), economic census (経済センサス), household and price statistics, by prefecture or municipality and over time. Japanese terms: 統計表情報取得 = `stats_list` (getStatsList), メタ情報取得 = `meta_info` (getMetaInfo), 統計データ取得 = `stats_data` / `stats_data_all` (getStatsData), データカタログ情報取得 = `data_catalog` (getDataCatalog), 統計表ID = `statsDataId` / `TableInf::id`, 政府統計コード = `stats_code`, アプリケーションID = `appId`, 表章事項 = `tab`, 時間軸事項 = `time`, 地域事項 = `area`, 分類事項 = `cat01`..`cat15`.
+
+Public items:
+
+- `EstatApi::{with_app_id, from_env (ESTAT_APP_ID), with_client, with_timeout, with_lang(Lang::{Japanese, English}), with_base_url}`
+- `stats_list(&StatsListParams) -> Result<StatsList, EstatError>`; `StatsList { result, parameter, datalist_inf: DataListInf { number, result_inf, table_inf: Vec<TableInf>, list_inf: Vec<ListInf> } }`
+- `meta_info(impl Into<MetaInfoParams>) -> Result<MetaInfo, _>` (a table ID string works); `MetaInfo { metadata_inf: MetadataInf { table_inf, class_inf: ClassInf { class_obj: Vec<ClassObj { id, name, description, explanation, class: Vec<Class { code, name, level, unit, parent_code, add_inf }> }> } } }`; `ClassInf::get(Dimension)`, `ClassObj::find(code)`
+- `stats_data(&StatsDataParams) -> Result<StatsData, _>`, `stats_data_all(&StatsDataParams)` (follows NEXT_KEY); `StatsData { statistical_data: StatisticalData { result_inf: ResultInf { total_number, from_number, to_number, next_key }, table_inf, class_inf: Option<ClassInf>, data_inf: DataInf { note, annotation, value: Vec<DataValue> } } }`; `StatsData::{values(), next_key(), label(&DataValue, Dimension)}`
+- `DataValue { tab, cat01..cat15, area, time, unit, annotation: Option<String>, value: String }` with `code(Dimension)` and `as_f64()` (`None` for `-`, `X` and other special characters)
+- `data_catalog(&DataCatalogParams) -> Result<DataCatalog, _>`; `catalog::{DataCatalogListInf, DataCatalogInf { id, dataset: Dataset, resources: Resources { resource: Vec<Resource { id, title, url, format, .. }> } }}`
+- `TableInf { id, stat_name: Option<CodeName { code, name }>, gov_org, statistics_name, title: Option<Title { no, name }>, cycle, survey_date, open_date, small_area, collect_area, main_category, sub_category, overall_total_number, updated_date, statistics_name_spec, description, title_spec }`
+- Params builders: `StatsListParams::new().search_word(..).stats_code(..).stats_field(..).survey_years(..).open_years(..).updated_date(..).search_kind(SearchKind)/collect_area(CollectArea)/explanation(bool)/stats_name_list()/start_position(n)/limit(n)`; `StatsDataParams::{table(id), dataset(id)}.code(dim, codes)/code_from/code_to/level(dim, level)/start_position/limit/meta(bool)/count_only()/explanation/annotation/replace_sp_char(ReplaceSpChar)`; `DataCatalogParams::new()` with the search setters plus `data_types([DataType::{Xls, Csv, Pdf, Xml, XlsRep, Db}])`, `catalog_id`, `resource_id`
+- `Dimension::{Tab, Time, Area, Cat01..Cat15}` with `id()`, `ALL`, `FromStr` ("area", "cat01", ...)
+- `EstatError::{Connection, JsonParse, Api { status, message }, HttpStatus(u16, String), UnexpectedResponse(String), InvalidArgument(String)}` with `status()`, `is_unauthorized()` (100), `is_invalid_parameter()` (101-105), `is_server_error()` (200-299), `is_not_found()` (300), `is_timeout()`
+- Every response struct has `extra: Map<String, Value>` with fields the crate does not know yet
+
+CLI (feature `cli`, `cargo install estat-api --features cli`): `estat list [-q WORDS] [--stats-code C] [--stats-field F] [--survey-years Y] [--open-years Y] [--updated-date D] [--collect-area nationwide|prefecture|municipality] [--small-area] [--surveys] [--limit N] [--start N]`, `estat meta ID`, `estat data ID [--dataset] [--code DIM=CODES]... [--level DIM=L]... [--from DIM=C]... [--to DIM=C]... [--limit N] [--start N] [--all]`, `estat catalog [search options] [--data-type xls|csv|pdf|xml|xls-rep|db]... [--catalog-id ID] [--resource-id ID]`. Global: `--app-id` (or `ESTAT_APP_ID`), `--lang ja|en`, `--ndjson`. JSON on stdout (`{ok, command, rows|data, meta}`); `data` rows are flat (`area`, `area_name`, ..., `value`, `number`). Errors as JSON on stderr; exit codes 2 usage, 3 auth, 4 api, 5 not found, 1 other.
+
+Common tasks:
+
+- Find a table: `stats_list` with `search_word("人口 AND 都道府県")` or `stats_code` (8 digits for a survey), then use `TableInf::id`.
+- Know the codes: `meta_info(id)`, then `class_inf.get(Dimension::Area)` and its `class` items (prefectures are `01000`..`47000`, whole country `00000`).
+- Get values: `stats_data_all(&StatsDataParams::table(id).code(Dimension::Area, "13000"))`; check the size first with `count_only()` for large tables.
+- Name the values: `data.label(value, Dimension::Time)`.
+
+e-Stat returns errors in `RESULT.STATUS`; the crate turns 100 and above into `EstatError::Api`. Status 1 (no match) is a success with empty lists. No throttling or retries: the terms of use forbid many requests in a short time, and services using the API must show e-Stat's credit text.
+
+## Documentation
+
+- [README](https://github.com/uiuifree/rust-estat-api/blob/main/README.md): usage, paging, response types, errors, terms of use
+- [API reference on docs.rs](https://docs.rs/estat-api)
+- [CHANGELOG](https://github.com/uiuifree/rust-estat-api/blob/main/CHANGELOG.md)
+- [examples/search.rs](https://github.com/uiuifree/rust-estat-api/blob/main/examples/search.rs): search tables and print values with names
+
+## Upstream
+
+- [e-Stat API specification 3.0](https://www.e-stat.go.jp/api/api-info/e-stat-manual3-0)
+- [e-Stat API usage guide](https://www.e-stat.go.jp/api/api-info/api-guide)
+- [e-Stat API terms of use](https://www.e-stat.go.jp/api/agreement/)
+- [Credit display](https://www.e-stat.go.jp/api/api-info/credit)

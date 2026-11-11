@@ -1,0 +1,141 @@
+{
+  "GET_META_INFO": {
+    "RESULT": {
+      "STATUS": 0,
+      "ERROR_MSG": "正常に終了しました。",
+      "DATE": "2026-10-03T09:08:42.778+09:00"
+    },
+    "PARAMETER": {
+      "LANG": "J",
+      "STATS_DATA_ID": "0003218663",
+      "DATA_FORMAT": "J"
+    },
+    "METADATA_INF": {
+      "TABLE_INF": {
+        "@id": "0003218663",
+        "STAT_NAME": {
+          "@code": "00200553",
+          "$": "経済センサス‐活動調査"
+        },
+        "GOV_ORG": {
+          "@code": "00200",
+          "$": "総務省"
+        },
+        "STATISTICS_NAME": "平成28年経済センサス‐活動調査 事業所に関する集計 産業横断的集計",
+        "TITLE": {
+          "@no": "15-2",
+          "$": "産業（小分類），常用雇用者規模（15区分），従業上の地位（６区分），男女別従業者数―全国，都道府県"
+        },
+        "CYCLE": "-",
+        "SURVEY_DATE": 201606,
+        "OPEN_DATE": "2018-06-28",
+        "SMALL_AREA": 0,
+        "COLLECT_AREA": "該当なし",
+        "MAIN_CATEGORY": {
+          "@code": "07",
+          "$": "企業・家計・経済"
+        },
+        "SUB_CATEGORY": {
+          "@code": "01",
+          "$": "企業活動"
+        },
+        "OVERALL_TOTAL_NUMBER": 5516467,
+        "UPDATED_DATE": "2026-09-30",
+        "STATISTICS_NAME_SPEC": {
+          "TABULATION_CATEGORY": "平成28年経済センサス‐活動調査",
+          "TABULATION_SUB_CATEGORY1": "事業所に関する集計",
+          "TABULATION_SUB_CATEGORY2": "産業横断的集計"
+        },
+        "DESCRIPTION": "",
+        "TITLE_SPEC": {
+          "TABLE_NAME": "産業（小分類），常用雇用者規模（15区分），従業上の地位（６区分），男女別従業者数―全国，都道府県"
+        }
+      },
+      "CLASS_INF": {
+        "CLASS_OBJ": [
+          {
+            "@id": "tab",
+            "@name": "表章項目",
+            "CLASS": [
+              {
+                "@code": "005",
+                "@name": "従業者数　総数",
+                "@level": "",
+                "@unit": "人"
+              },
+              {
+                "@code": "006",
+                "@name": "従業者数　男",
+                "@level": "",
+                "@unit": "人"
+              },
+              {
+                "@code": "007",
+                "@name": "従業者数　女",
+                "@level": "",
+                "@unit": "人"
+              }
+            ],
+            "EXPLANATION": {
+              "@id": "005",
+              "$": "事業所に従事している者の総数"
+            }
+          },
+          {
+            "@id": "cat01",
+            "@name": "H28_常用雇用者規模",
+            "CLASS": [
+              {
+                "@code": "0000",
+                "@name": "総数",
+                "@level": "1"
+              },
+              {
+                "@code": "0010",
+                "@name": "0人",
+                "@level": "2"
+              },
+              {
+                "@code": "0020",
+                "@name": "1人",
+                "@level": "2"
+              }
+            ]
+          },
+          {
+            "@id": "area",
+            "@name": "H28_地域",
+            "CLASS": [
+              {
+                "@code": "00000",
+                "@name": "全国",
+                "@level": "1"
+              },
+              {
+                "@code": "01000",
+                "@name": "北海道",
+                "@level": "2",
+                "@parentCode": "00000"
+              },
+              {
+                "@code": "02000",
+                "@name": "青森県",
+                "@level": "2",
+                "@parentCode": "00000"
+              }
+            ]
+          },
+          {
+            "@id": "time",
+            "@name": "時間軸",
+            "CLASS": {
+              "@code": "2016000000",
+              "@name": "2016年",
+              "@level": "1"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

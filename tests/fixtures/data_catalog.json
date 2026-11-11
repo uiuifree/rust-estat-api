@@ -1,0 +1,136 @@
+{
+  "GET_DATA_CATALOG": {
+    "RESULT": {
+      "STATUS": 0,
+      "ERROR_MSG": "正常に終了しました。",
+      "DATE": "2026-10-27T00:19:30.552+09:00"
+    },
+    "PARAMETER": {
+      "LANG": "J",
+      "STATS_CODE": "00400001",
+      "DATA_FORMAT": "J",
+      "LIMIT": 2
+    },
+    "DATA_CATALOG_LIST_INF": {
+      "NUMBER": 2,
+      "RESULT_INF": {
+        "FROM_NUMBER": 1,
+        "TO_NUMBER": 2
+      },
+      "DATA_CATALOG_INF": [
+        {
+          "@id": "000001029859",
+          "DATASET": {
+            "STAT_NAME": {
+              "@code": "00400001",
+              "$": "学校基本調査"
+            },
+            "ORGANIZATION": {
+              "@code": "00400",
+              "$": "文部科学省"
+            },
+            "TITLE": {
+              "NAME": "学校基本調査_平成１８年度_高等教育機関《報告書掲載集計》_学校調査_大学・大学院_2006年",
+              "TABULATION_CATEGORY": "学校基本調査",
+              "TABULATION_SUB_CATEGORY1": "平成１８年度",
+              "TABULATION_SUB_CATEGORY2": "高等教育機関《報告書掲載集計》",
+              "TABULATION_SUB_CATEGORY3": "学校調査",
+              "TABULATION_SUB_CATEGORY4": "大学・大学院",
+              "TABULATION_SUB_CATEGORY5": "",
+              "CYCLE": "",
+              "SURVEY_DATE": 2006,
+              "COLLECT_AREA": "該当なし"
+            },
+            "DESCRIPTION": "",
+            "PUBLISHER": "文部科学省",
+            "CONTACT_POINT": "",
+            "CREATOR": "",
+            "RELEASE_DATE": "2006-12-21",
+            "LAST_MODIFIED_DATE": "2006-12-21",
+            "FREQUENCY_OF_UPDATE": "",
+            "LANDING_PAGE": "https://www.e-stat.go.jp/stat-search/files?layout=datalist&toukei=00400001&tstat=000001011528&cycle=0&tclass1=000001011529&tclass2=000001018617&tclass3=000001018618&tclass4=000001018620"
+          },
+          "RESOURCES": {
+            "RESOURCE": {
+              "@id": "000001275539",
+              "TITLE": {
+                "NAME": "19_出身高校の所在地県別　入学者数",
+                "TABLE_CATEGORY": "",
+                "TABLE_NO": 19,
+                "TABLE_NAME": "出身高校の所在地県別　入学者数",
+                "TABLE_EXPLANATION": "",
+                "TABLE_SUB_CATEGORY1": "",
+                "TABLE_SUB_CATEGORY2": "",
+                "TABLE_SUB_CATEGORY3": ""
+              },
+              "URL": "https://www.e-stat.go.jp/stat-search/file-download?&statInfId=000001226014&fileKind=0",
+              "DESCRIPTION": "",
+              "FORMAT": "XLS",
+              "RELEASE_DATE": "2006-12-21",
+              "LAST_MODIFIED_DATE": "2006-12-21",
+              "RESOURCE_LICENCE_ID": "Government of Japan Standard Terms of Use",
+              "LANGUAGE": "J"
+            }
+          }
+        },
+        {
+          "@id": "000001234567",
+          "DATASET": {
+            "STAT_NAME": {
+              "@code": "00400001",
+              "$": "学校基本調査"
+            },
+            "ORGANIZATION": {
+              "@code": "00400",
+              "$": "文部科学省"
+            },
+            "TITLE": {
+              "NAME": "学校基本調査_令和６年度_高等教育機関",
+              "TABULATION_CATEGORY": "学校基本調査",
+              "TABULATION_SUB_CATEGORY1": "令和６年度",
+              "CYCLE": "年次",
+              "SURVEY_DATE": "202405",
+              "COLLECT_AREA": "全国"
+            },
+            "DESCRIPTION": {
+              "TABULATION_CATEGORY_EXPLANATION": "学校に関する基本的事項を調査する"
+            },
+            "PUBLISHER": "文部科学省",
+            "CONTACT_POINT": "",
+            "CREATOR": "",
+            "RELEASE_DATE": "2024-12-18",
+            "LAST_MODIFIED_DATE": "2024-12-18",
+            "FREQUENCY_OF_UPDATE": "年次",
+            "LANDING_PAGE": ""
+          },
+          "RESOURCES": {
+            "RESOURCE": [
+              {
+                "@id": "000040216431",
+                "TITLE": {
+                  "NAME": "入学状況",
+                  "TABLE_NO": "1",
+                  "TABLE_NAME": "入学状況"
+                },
+                "URL": "0003456789",
+                "DESCRIPTION": "",
+                "FORMAT": "DB",
+                "RELEASE_DATE": "2024-12-18",
+                "LAST_MODIFIED_DATE": "2024-12-18",
+                "RESOURCE_LICENCE_ID": "Government of Japan Standard Terms of Use",
+                "LANGUAGE": "J"
+              },
+              {
+                "@id": "000040216432",
+                "TITLE": "",
+                "URL": "0003456790",
+                "FORMAT": "DB",
+                "LANGUAGE": "J"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

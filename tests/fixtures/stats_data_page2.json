@@ -1,0 +1,89 @@
+{
+  "GET_STATS_DATA": {
+    "RESULT": {
+      "STATUS": 0,
+      "ERROR_MSG": "正常に終了しました。",
+      "DATE": "2026-11-12T09:00:01.000+09:00"
+    },
+    "PARAMETER": {
+      "LANG": "J",
+      "STATS_DATA_ID": "0003218663",
+      "DATA_FORMAT": "J",
+      "START_POSITION": 4,
+      "LIMIT": 3,
+      "METAGET_FLG": "N",
+      "CNT_GET_FLG": "N"
+    },
+    "STATISTICAL_DATA": {
+      "RESULT_INF": {
+        "TOTAL_NUMBER": 4,
+        "FROM_NUMBER": 4,
+        "TO_NUMBER": 4
+      },
+      "TABLE_INF": {
+        "@id": "0003218663",
+        "STAT_NAME": {
+          "@code": "00200553",
+          "$": "経済センサス‐活動調査"
+        },
+        "GOV_ORG": {
+          "@code": "00200",
+          "$": "総務省"
+        },
+        "STATISTICS_NAME": "平成28年経済センサス‐活動調査 事業所に関する集計 産業横断的集計",
+        "TITLE": {
+          "@no": "15-2",
+          "$": "産業（小分類），常用雇用者規模（15区分），従業上の地位（６区分），男女別従業者数―全国，都道府県"
+        },
+        "CYCLE": "-",
+        "SURVEY_DATE": 201606,
+        "OPEN_DATE": "2018-06-28",
+        "SMALL_AREA": 0,
+        "COLLECT_AREA": "該当なし",
+        "MAIN_CATEGORY": {
+          "@code": "07",
+          "$": "企業・家計・経済"
+        },
+        "SUB_CATEGORY": {
+          "@code": "01",
+          "$": "企業活動"
+        },
+        "OVERALL_TOTAL_NUMBER": 5516467,
+        "UPDATED_DATE": "2026-09-30",
+        "STATISTICS_NAME_SPEC": {
+          "TABULATION_CATEGORY": "平成28年経済センサス‐活動調査",
+          "TABULATION_SUB_CATEGORY1": "事業所に関する集計",
+          "TABULATION_SUB_CATEGORY2": "産業横断的集計"
+        },
+        "DESCRIPTION": "",
+        "TITLE_SPEC": {
+          "TABLE_NAME": "産業（小分類），常用雇用者規模（15区分），従業上の地位（６区分），男女別従業者数―全国，都道府県"
+        }
+      },
+      "DATA_INF": {
+        "NOTE": {
+          "@char": "X",
+          "$": "秘匿"
+        },
+        "ANNOTATION": [
+          {
+            "@annotation": "J1",
+            "$": "全国には住所地外国を含む"
+          },
+          {
+            "@annotation": "J2",
+            "$": "岩手県は推計値"
+          }
+        ],
+        "VALUE": {
+          "@tab": "005",
+          "@cat01": "0000",
+          "@area": "03000",
+          "@time": "2016000000",
+          "$": "1180503",
+          "@annotation": "J2"
+        }
+      }
+    }
+  }
+}
