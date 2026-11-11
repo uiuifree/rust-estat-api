@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 毎週月曜 03:00 UTC。API のレスポンス形式の変化に気づくため
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+  # release.yml から呼ぶ
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Test
+        run: cargo test --all-targets --all-features
+      - name: Doc tests
+        run: cargo test --doc
+      - name: Rustdoc
+        run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - name: Package
+        run: cargo package --allow-dirty
+
+  # テストで全行を通っていることを確認する
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: Swatinem/rust-cache@v2
+      - name: Coverage
+        run: cargo llvm-cov --all-targets --all-features --fail-under-lines 100
+
+  # Cargo.toml の rust-version = "1.88" を保証する
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88"
+      - uses: Swatinem/rust-cache@v2
+      - name: Check on MSRV
+        run: cargo check --all-features
+
+  # 実際の API を叩くテスト。シークレットがない場合（フォークからの PR など）はスキップする
+  live:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      ESTAT_APP_ID: ${{ secrets.ESTAT_APP_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.ESTAT_APP_ID != ''
+      - uses: dtolnay/rust-toolchain@stable
+        if: env.ESTAT_APP_ID != ''
+      - uses: Swatinem/rust-cache@v2
+        if: env.ESTAT_APP_ID != ''
+      - name: Live tests
+        if: env.ESTAT_APP_ID != ''
+        run: cargo test --test live -- --ignored --test-threads 1
