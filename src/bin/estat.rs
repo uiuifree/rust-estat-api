@@ -43,6 +43,10 @@ struct Cli {
     #[arg(long, global = true)]
     ndjson: bool,
 
+    /// Timeout of each request in seconds.
+    #[arg(long, global = true, default_value_t = 300)]
+    timeout: u64,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -93,6 +97,9 @@ enum Command {
         /// Follow NEXT_KEY and return every page.
         #[arg(long)]
         all: bool,
+        /// Only count the values (meta.total), without returning them.
+        #[arg(long, conflicts_with = "all")]
+        count_only: bool,
     },
     /// Search the data catalog of files and database tables (getDataCatalog).
     Catalog {
@@ -310,7 +317,9 @@ fn api(cli: &Cli) -> Result<EstatApi, CliError> {
                 "no application ID: set ESTAT_APP_ID or pass --app-id",
             )
         })?;
-    let mut api = EstatApi::with_app_id(app_id).with_base_url(&cli.base_url);
+    let mut api = EstatApi::with_app_id(app_id)
+        .with_base_url(&cli.base_url)
+        .with_timeout(std::time::Duration::from_secs(cli.timeout));
     if let Some(lang) = cli.lang {
         api = api.with_lang(match lang {
             LangArg::Ja => Lang::Japanese,
@@ -437,6 +446,7 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             limit,
             start,
             all,
+            count_only,
         } => {
             let mut params = if *dataset {
                 StatsDataParams::dataset(id)
@@ -460,6 +470,9 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             }
             if let Some(start) = start {
                 params = params.start_position(*start);
+            }
+            if *count_only {
+                params = params.count_only().meta(false);
             }
             let api = api(cli)?;
             let data = if *all {

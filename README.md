@@ -73,7 +73,8 @@ async fn main() -> Result<(), estat_api::EstatError> {
 }
 ```
 
-Requests time out after 60 seconds. Change it with `with_timeout`, or pass your own
+Requests time out after 5 minutes, since some catalog searches take more than a minute on the
+e-Stat side. Change it with `with_timeout`, or pass your own
 `reqwest::Client` with `with_client`. `with_lang(Lang::English)` asks for English names where the
 table has them.
 
@@ -125,7 +126,8 @@ applies as it is. e-Stat converts XML to JSON, which has some side effects the t
   Here it is always a `Vec`.
 - Text that looks like a number becomes a JSON number (`"SURVEY_DATE": 201606`). Text fields
   accept both and keep a string; counts accept both and keep a number.
-- An empty element becomes `""`, so `DESCRIPTION` is `None` instead of an empty struct.
+- An empty element becomes `""`: `DESCRIPTION` is then `None`, and `RESULT_INF` (no match) or
+  `DATA_INF` (`count_only`) an empty struct.
 - `TITLE` is a plain string when the table has no number, and an object with `@no` when it has.
 
 Fields this crate does not know are kept in `extra` on every struct, and serializing a struct gives
@@ -182,7 +184,8 @@ estat catalog --stats-code 00200521 --data-type csv
 and `number` (`null` for special characters). Filters are `--code DIM=CODES`, `--level DIM=LEVEL`,
 `--from DIM=CODE` and `--to DIM=CODE`, where `DIM` is `tab`, `time`, `area` or `cat01` to `cat15`.
 `--all` follows `NEXT_KEY`; without it, `meta.next_key` is the value to pass to `--start`.
-`--ndjson` prints one row per line.
+`--count-only` prints just `meta.total`, to check the size before `--all`. `--ndjson` prints one
+row per line, and `--timeout SECS` changes the 5 minute timeout.
 
 Results are `{"ok": true, "command", "params", "rows" or "data", "meta"}`, where `params` is the
 `PARAMETER` element e-Stat echoes back. Errors are printed to stderr as `{"ok": false, "error": {"kind", "message", "status"}}`.

@@ -95,6 +95,7 @@ impl EstatError {
 impl Display for EstatError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            EstatError::Connection(e) if e.is_timeout() => write!(f, "connection error: timed out"),
             EstatError::Connection(e) => write!(f, "connection error: {e}"),
             EstatError::JsonParse(e) => write!(f, "json parse error: {e}"),
             EstatError::Api { status, message } => write!(f, "e-stat error {status}: {message}"),

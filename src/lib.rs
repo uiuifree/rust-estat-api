@@ -30,7 +30,8 @@ use std::fmt::{Debug, Formatter};
 use std::time::Duration;
 
 const DEFAULT_BASE_URL: &str = "https://api.e-stat.go.jp/rest/3.0/app/json";
-const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
+// Some catalog searches take more than a minute on the e-Stat side
+const DEFAULT_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Environment variable read by [`EstatApi::from_env`].
 pub const APP_ID_ENV: &str = "ESTAT_APP_ID";
@@ -103,7 +104,7 @@ impl Debug for EstatApi {
 }
 
 impl EstatApi {
-    /// Client with the given application ID. Requests time out after 60 seconds.
+    /// Client with the given application ID. Requests time out after 5 minutes.
     pub fn with_app_id<T: Into<String>>(app_id: T) -> Self {
         EstatApi {
             app_id: app_id.into(),
@@ -130,7 +131,7 @@ impl EstatApi {
             .ok_or_else(|| EstatError::InvalidArgument(format!("{APP_ID_ENV} is not set")))
     }
 
-    /// Uses the given HTTP client, for example one with a proxy. The 60 second
+    /// Uses the given HTTP client, for example one with a proxy. The 5 minute
     /// default no longer applies, so set a timeout on the client if you want one.
     pub fn with_client(mut self, client: reqwest::Client) -> Self {
         self.client = client;

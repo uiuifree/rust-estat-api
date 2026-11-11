@@ -3,66 +3,68 @@
     "RESULT": {
       "STATUS": 0,
       "ERROR_MSG": "正常に終了しました。",
-      "DATE": "2026-11-12T09:00:00.000+09:00"
+      "DATE": "2026-11-12T08:04:31.985+09:00"
     },
     "PARAMETER": {
       "LANG": "J",
-      "STATS_DATA_ID": "0003218663",
+      "STATS_DATA_ID": "0003448237",
       "NARROWING_COND": {
-        "CODE_TAB_SELECT": "005",
-        "CODE_CAT01_SELECT": "0000"
+        "CODE_CAT01_SELECT": "000",
+        "CODE_CAT02_SELECT": "01000",
+        "CODE_CAT03_SELECT": "001",
+        "CODE_AREA_SELECT": 13000
       },
       "DATA_FORMAT": "J",
       "START_POSITION": 1,
-      "LIMIT": 3,
-      "METAGET_FLG": "Y",
-      "CNT_GET_FLG": "N"
+      "LIMIT": 4,
+      "METAGET_FLG": "Y"
     },
     "STATISTICAL_DATA": {
       "RESULT_INF": {
-        "TOTAL_NUMBER": 4,
+        "TOTAL_NUMBER": 5,
         "FROM_NUMBER": 1,
-        "TO_NUMBER": 3,
-        "NEXT_KEY": 4
+        "TO_NUMBER": 4,
+        "NEXT_KEY": 5
       },
       "TABLE_INF": {
-        "@id": "0003218663",
+        "@id": "0003448237",
         "STAT_NAME": {
-          "@code": "00200553",
-          "$": "経済センサス‐活動調査"
+          "@code": "00200524",
+          "$": "人口推計"
         },
         "GOV_ORG": {
           "@code": "00200",
           "$": "総務省"
         },
-        "STATISTICS_NAME": "平成28年経済センサス‐活動調査 事業所に関する集計 産業横断的集計",
+        "STATISTICS_NAME": "人口推計 各年10月1日現在人口 令和２年国勢調査基準 統計表",
         "TITLE": {
-          "@no": "15-2",
-          "$": "産業（小分類），常用雇用者規模（15区分），従業上の地位（６区分），男女別従業者数―全国，都道府県"
+          "@no": "010",
+          "$": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
         },
-        "CYCLE": "-",
-        "SURVEY_DATE": 201606,
-        "OPEN_DATE": "2018-06-28",
+        "CYCLE": "年次",
+        "SURVEY_DATE": 0,
+        "OPEN_DATE": "2025-04-14",
         "SMALL_AREA": 0,
         "COLLECT_AREA": "該当なし",
         "MAIN_CATEGORY": {
-          "@code": "07",
-          "$": "企業・家計・経済"
+          "@code": "02",
+          "$": "人口・世帯"
         },
         "SUB_CATEGORY": {
           "@code": "01",
-          "$": "企業活動"
+          "$": "人口"
         },
-        "OVERALL_TOTAL_NUMBER": 5516467,
-        "UPDATED_DATE": "2026-09-30",
+        "OVERALL_TOTAL_NUMBER": 27360,
+        "UPDATED_DATE": "2025-10-03",
         "STATISTICS_NAME_SPEC": {
-          "TABULATION_CATEGORY": "平成28年経済センサス‐活動調査",
-          "TABULATION_SUB_CATEGORY1": "事業所に関する集計",
-          "TABULATION_SUB_CATEGORY2": "産業横断的集計"
+          "TABULATION_CATEGORY": "人口推計",
+          "TABULATION_SUB_CATEGORY1": "各年10月1日現在人口",
+          "TABULATION_SUB_CATEGORY2": "令和２年国勢調査基準",
+          "TABULATION_SUB_CATEGORY3": "統計表"
         },
         "DESCRIPTION": "",
         "TITLE_SPEC": {
-          "TABLE_NAME": "産業（小分類），常用雇用者規模（15区分），従業上の地位（６区分），男女別従業者数―全国，都道府県"
+          "TABLE_NAME": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
         }
       },
       "CLASS_INF": {
@@ -70,126 +72,133 @@
           {
             "@id": "tab",
             "@name": "表章項目",
-            "CLASS": [
-              {
-                "@code": "005",
-                "@name": "従業者数　総数",
-                "@level": "",
-                "@unit": "人"
-              },
-              {
-                "@code": "006",
-                "@name": "従業者数　男",
-                "@level": "",
-                "@unit": "人"
-              },
-              {
-                "@code": "007",
-                "@name": "従業者数　女",
-                "@level": "",
-                "@unit": "人"
-              }
-            ],
-            "EXPLANATION": {
-              "@id": "005",
-              "$": "事業所に従事している者の総数"
+            "CLASS": {
+              "@code": "001",
+              "@name": "人口",
+              "@level": "",
+              "@unit": "千人"
             }
           },
           {
             "@id": "cat01",
-            "@name": "H28_常用雇用者規模",
-            "CLASS": [
-              {
-                "@code": "0000",
-                "@name": "総数",
-                "@level": "1"
-              },
-              {
-                "@code": "0010",
-                "@name": "0人",
-                "@level": "2"
-              },
-              {
-                "@code": "0020",
-                "@name": "1人",
-                "@level": "2"
-              }
-            ]
+            "@name": "男女別",
+            "CLASS": {
+              "@code": "000",
+              "@name": "男女計",
+              "@level": "1"
+            }
+          },
+          {
+            "@id": "cat02",
+            "@name": "年齢5歳階級",
+            "CLASS": {
+              "@code": "01000",
+              "@name": "総数",
+              "@level": "1"
+            }
+          },
+          {
+            "@id": "cat03",
+            "@name": "人口",
+            "CLASS": {
+              "@code": "001",
+              "@name": "総人口",
+              "@level": "1"
+            }
           },
           {
             "@id": "area",
-            "@name": "H28_地域",
-            "CLASS": [
-              {
-                "@code": "00000",
-                "@name": "全国",
-                "@level": "1"
-              },
-              {
-                "@code": "01000",
-                "@name": "北海道",
-                "@level": "2",
-                "@parentCode": "00000"
-              },
-              {
-                "@code": "02000",
-                "@name": "青森県",
-                "@level": "2",
-                "@parentCode": "00000"
-              }
-            ]
+            "@name": "全国・都道府県",
+            "CLASS": {
+              "@code": "13000",
+              "@name": "東京都",
+              "@level": "2"
+            }
           },
           {
             "@id": "time",
-            "@name": "時間軸",
-            "CLASS": {
-              "@code": "2016000000",
-              "@name": "2016年",
-              "@level": "1"
-            }
+            "@name": "時間軸（年月日現在）",
+            "CLASS": [
+              {
+                "@code": "1601",
+                "@name": "2020年10月1日現在",
+                "@level": "1"
+              },
+              {
+                "@code": "1301",
+                "@name": "2021年10月1日現在",
+                "@level": "1"
+              },
+              {
+                "@code": "1701",
+                "@name": "2022年10月1日現在",
+                "@level": "1"
+              },
+              {
+                "@code": "1801",
+                "@name": "2023年10月1日現在",
+                "@level": "1"
+              },
+              {
+                "@code": "1901",
+                "@name": "2024年10月1日現在",
+                "@level": "1"
+              }
+            ]
           }
         ]
       },
       "DATA_INF": {
         "NOTE": [
           {
-            "@char": "-",
-            "$": "該当数値なし"
+            "@char": "***",
+            "$": "該当数値がないもの"
           },
           {
-            "@char": "X",
-            "$": "秘匿"
+            "@char": "-",
+            "$": "該当数値がないもの　"
           }
         ],
-        "ANNOTATION": {
-          "@annotation": "J1",
-          "$": "全国には住所地外国を含む"
-        },
         "VALUE": [
           {
-            "@tab": "005",
-            "@cat01": "0000",
-            "@area": "00000",
-            "@time": "2016000000",
-            "@unit": "人",
-            "$": "56872826",
-            "@annotation": "J1"
+            "@tab": "001",
+            "@cat01": "000",
+            "@cat02": "01000",
+            "@cat03": "001",
+            "@area": "13000",
+            "@time": "1601",
+            "@unit": "千人",
+            "$": "14048"
           },
           {
-            "@tab": "005",
-            "@cat01": "0000",
-            "@area": "01000",
-            "@time": "2016000000",
-            "@unit": "人",
-            "$": "2340283"
+            "@tab": "001",
+            "@cat01": "000",
+            "@cat02": "01000",
+            "@cat03": "001",
+            "@area": "13000",
+            "@time": "1301",
+            "@unit": "千人",
+            "$": "14010"
           },
           {
-            "@tab": "005",
-            "@cat01": "0000",
-            "@area": "02000",
-            "@time": "2016000000",
-            "@unit": "人",
-            "$": "X"
+            "@tab": "001",
+            "@cat01": "000",
+            "@cat02": "01000",
+            "@cat03": "001",
+            "@area": "13000",
+            "@time": "1701",
+            "@unit": "千人",
+            "$": "14038"
+          },
+          {
+            "@tab": "001",
+            "@cat01": "000",
+            "@cat02": "01000",
+            "@cat03": "001",
+            "@area": "13000",
+            "@time": "1801",
+            "@unit": "千人",
+            "$": "14086"
           }
         ]
       }

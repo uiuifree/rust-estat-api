@@ -1,0 +1,18 @@
+{
+  "GET_STATS_LIST": {
+    "RESULT": {
+      "STATUS": 1,
+      "ERROR_MSG": "正常に終了しましたが、該当データはありませんでした。",
+      "DATE": "2026-11-12T07:55:13.522+09:00"
+    },
+    "PARAMETER": {
+      "LANG": "J",
+      "SEARCH_WORD": "zzzzqqqxx",
+      "DATA_FORMAT": "J"
+    },
+    "DATALIST_INF": {
+      "NUMBER": 0,
+      "RESULT_INF": ""
+    }
+  }
+}

@@ -3,21 +3,100 @@
     "RESULT": {
       "STATUS": 0,
       "ERROR_MSG": "正常に終了しました。",
-      "DATE": "2026-10-27T00:19:30.552+09:00"
+      "DATE": "2026-11-12T07:56:38.366+09:00"
     },
     "PARAMETER": {
       "LANG": "J",
-      "STATS_CODE": "00400001",
+      "STATS_CODE": "00200524",
+      "DATA_TYPE": "DB",
       "DATA_FORMAT": "J",
       "LIMIT": 2
     },
     "DATA_CATALOG_LIST_INF": {
-      "NUMBER": 2,
+      "NUMBER": 110,
       "RESULT_INF": {
         "FROM_NUMBER": 1,
-        "TO_NUMBER": 2
+        "TO_NUMBER": 2,
+        "NEXT_KEY": 3
       },
       "DATA_CATALOG_INF": [
+        {
+          "@id": "000000090095",
+          "DATASET": {
+            "STAT_NAME": {
+              "@code": "00200524",
+              "$": "人口推計"
+            },
+            "ORGANIZATION": {
+              "@code": "00200",
+              "$": "総務省"
+            },
+            "TITLE": {
+              "NAME": "人口推計_国勢調査結果による補間補正人口_平成12年及び17年国勢調査結果による補間補正人口_2005年",
+              "TABULATION_CATEGORY": "人口推計",
+              "TABULATION_SUB_CATEGORY1": "国勢調査結果による補間補正人口",
+              "TABULATION_SUB_CATEGORY2": "平成12年及び17年国勢調査結果による補間補正人口",
+              "TABULATION_SUB_CATEGORY3": "",
+              "TABULATION_SUB_CATEGORY4": "",
+              "TABULATION_SUB_CATEGORY5": "",
+              "CYCLE": "",
+              "SURVEY_DATE": 2005,
+              "COLLECT_AREA": "該当なし"
+            },
+            "DESCRIPTION": "",
+            "PUBLISHER": "総務省",
+            "CONTACT_POINT": "統計局統計調査部国勢統計課",
+            "CREATOR": "統計局統計調査部国勢統計課",
+            "RELEASE_DATE": "2016-03-15",
+            "LAST_MODIFIED_DATE": "2016-03-15",
+            "FREQUENCY_OF_UPDATE": "",
+            "LANDING_PAGE": "https://www.e-stat.go.jp/stat-search/files?layout=datalist&toukei=00200524&tstat=000000090001&cycle=0&tclass1=000000090001&tclass2=000000090002"
+          },
+          "RESOURCES": {
+            "RESOURCE": [
+              {
+                "@id": "0004029362",
+                "TITLE": {
+                  "NAME": "全国_1_全国，男女別人口－総人口，日本人人口（各月1日現在）",
+                  "TABLE_CATEGORY": "全国",
+                  "TABLE_NO": 1,
+                  "TABLE_NAME": "全国，男女別人口－総人口，日本人人口（各月1日現在）",
+                  "TABLE_EXPLANATION": "",
+                  "TABLE_SUB_CATEGORY1": "",
+                  "TABLE_SUB_CATEGORY2": "",
+                  "TABLE_SUB_CATEGORY3": ""
+                },
+                "URL": "0004029362",
+                "DESCRIPTION": "",
+                "FORMAT": "DB",
+                "RELEASE_DATE": "2016-03-15",
+                "LAST_MODIFIED_DATE": "2016-03-15",
+                "RESOURCE_LICENCE_ID": "Government of Japan Standard Terms of Use",
+                "LANGUAGE": "J"
+              },
+              {
+                "@id": "0004029363",
+                "TITLE": {
+                  "NAME": "都道府県_2_都道府県，男女別人口－総人口，日本人人口（各年10月1日現在）",
+                  "TABLE_CATEGORY": "都道府県",
+                  "TABLE_NO": 2,
+                  "TABLE_NAME": "都道府県，男女別人口－総人口，日本人人口（各年10月1日現在）",
+                  "TABLE_EXPLANATION": "",
+                  "TABLE_SUB_CATEGORY1": "",
+                  "TABLE_SUB_CATEGORY2": "",
+                  "TABLE_SUB_CATEGORY3": ""
+                },
+                "URL": "0004029363",
+                "DESCRIPTION": "",
+                "FORMAT": "DB",
+                "RELEASE_DATE": "2016-03-15",
+                "LAST_MODIFIED_DATE": "2016-03-15",
+                "RESOURCE_LICENCE_ID": "Government of Japan Standard Terms of Use",
+                "LANGUAGE": "J"
+              }
+            ]
+          }
+        },
         {
           "@id": "000001029859",
           "DATASET": {
@@ -71,63 +150,6 @@
               "RESOURCE_LICENCE_ID": "Government of Japan Standard Terms of Use",
               "LANGUAGE": "J"
             }
-          }
-        },
-        {
-          "@id": "000001234567",
-          "DATASET": {
-            "STAT_NAME": {
-              "@code": "00400001",
-              "$": "学校基本調査"
-            },
-            "ORGANIZATION": {
-              "@code": "00400",
-              "$": "文部科学省"
-            },
-            "TITLE": {
-              "NAME": "学校基本調査_令和６年度_高等教育機関",
-              "TABULATION_CATEGORY": "学校基本調査",
-              "TABULATION_SUB_CATEGORY1": "令和６年度",
-              "CYCLE": "年次",
-              "SURVEY_DATE": "202405",
-              "COLLECT_AREA": "全国"
-            },
-            "DESCRIPTION": {
-              "TABULATION_CATEGORY_EXPLANATION": "学校に関する基本的事項を調査する"
-            },
-            "PUBLISHER": "文部科学省",
-            "CONTACT_POINT": "",
-            "CREATOR": "",
-            "RELEASE_DATE": "2024-12-18",
-            "LAST_MODIFIED_DATE": "2024-12-18",
-            "FREQUENCY_OF_UPDATE": "年次",
-            "LANDING_PAGE": ""
-          },
-          "RESOURCES": {
-            "RESOURCE": [
-              {
-                "@id": "000040216431",
-                "TITLE": {
-                  "NAME": "入学状況",
-                  "TABLE_NO": "1",
-                  "TABLE_NAME": "入学状況"
-                },
-                "URL": "0003456789",
-                "DESCRIPTION": "",
-                "FORMAT": "DB",
-                "RELEASE_DATE": "2024-12-18",
-                "LAST_MODIFIED_DATE": "2024-12-18",
-                "RESOURCE_LICENCE_ID": "Government of Japan Standard Terms of Use",
-                "LANGUAGE": "J"
-              },
-              {
-                "@id": "000040216432",
-                "TITLE": "",
-                "URL": "0003456790",
-                "FORMAT": "DB",
-                "LANGUAGE": "J"
-              }
-            ]
           }
         }
       ]

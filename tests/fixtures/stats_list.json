@@ -3,16 +3,16 @@
     "RESULT": {
       "STATUS": 0,
       "ERROR_MSG": "正常に終了しました。",
-      "DATE": "2026-11-12T00:19:24.956+09:00"
+      "DATE": "2026-11-12T07:54:58.643+09:00"
     },
     "PARAMETER": {
       "LANG": "J",
-      "SURVEY_YEARS": "202201",
+      "SEARCH_WORD": "家計 AND 東京",
       "DATA_FORMAT": "J",
       "LIMIT": 2
     },
     "DATALIST_INF": {
-      "NUMBER": 101,
+      "NUMBER": 2681,
       "RESULT_INF": {
         "FROM_NUMBER": 1,
         "TO_NUMBER": 2,
@@ -20,82 +20,85 @@
       },
       "TABLE_INF": [
         {
-          "@id": "0003355224",
+          "@id": "0000110762",
           "STAT_NAME": {
-            "@code": "00100401",
-            "$": "機械受注統計調査"
-          },
-          "GOV_ORG": {
-            "@code": "00100",
-            "$": "内閣府"
-          },
-          "STATISTICS_NAME": "機械受注統計調査 主要長期時系列統計表（2005/4～）",
-          "TITLE": "長期系列　主要需要者別機械受注額(原系列・年度)",
-          "CYCLE": "年度次",
-          "SURVEY_DATE": "202104-202203",
-          "OPEN_DATE": "2022-05-19",
-          "SMALL_AREA": 0,
-          "COLLECT_AREA": "該当なし",
-          "MAIN_CATEGORY": {
-            "@code": "05",
-            "$": "鉱工業"
-          },
-          "SUB_CATEGORY": {
-            "@code": "02",
-            "$": "製造業"
-          },
-          "OVERALL_TOTAL_NUMBER": 289,
-          "UPDATED_DATE": "2022-10-19",
-          "STATISTICS_NAME_SPEC": {
-            "TABULATION_CATEGORY": "機械受注統計調査",
-            "TABULATION_SUB_CATEGORY1": "主要長期時系列統計表（2005/4～）"
-          },
-          "DESCRIPTION": "",
-          "TITLE_SPEC": {
-            "TABLE_NAME": "長期系列　主要需要者別機械受注額(原系列・年度)",
-            "TABLE_EXPLANATION": "Volatile orders:Orders for ships and those from electric power companies."
-          }
-        },
-        {
-          "@id": "0003084821",
-          "STAT_NAME": {
-            "@code": "00200532",
-            "$": "就業構造基本調査"
+            "@code": "00200564",
+            "$": "全国家計構造調査（旧全国消費実態調査）"
           },
           "GOV_ORG": {
             "@code": "00200",
             "$": "総務省"
           },
-          "STATISTICS_NAME": "平成24年就業構造基本調査 全国編",
+          "STATISTICS_NAME": "平成6年全国消費実態調査 全国 家計資産編（総資産）",
           "TITLE": {
-            "@no": "00100",
-            "$": "男女，就業状態・仕事の主従，年齢別15歳以上人口"
+            "@no": "0010809",
+            "$": "二人以上の一般世帯 全世帯，家計収支用途分類（６０）Ｂ４（住宅全世帯資産編），資産の種類・資産額階級（４１Ｃ），１世帯当たり１ヶ月間の収支，東京都（１）"
           },
           "CYCLE": "-",
-          "SURVEY_DATE": 201210,
-          "OPEN_DATE": "2013-07-12",
+          "SURVEY_DATE": "199401-199412",
+          "OPEN_DATE": "2007-09-07",
           "SMALL_AREA": 0,
-          "COLLECT_AREA": "全国",
+          "COLLECT_AREA": "該当なし",
           "MAIN_CATEGORY": {
-            "@code": "03",
-            "$": "労働・賃金"
+            "@code": "07",
+            "$": "企業・家計・経済"
           },
           "SUB_CATEGORY": {
-            "@code": "01",
-            "$": "労働力"
+            "@code": "04",
+            "$": "家計"
           },
-          "OVERALL_TOTAL_NUMBER": 8208,
-          "UPDATED_DATE": "2014-02-10",
+          "OVERALL_TOTAL_NUMBER": 2520,
+          "UPDATED_DATE": "2025-12-19",
           "STATISTICS_NAME_SPEC": {
-            "TABULATION_CATEGORY": "平成24年就業構造基本調査",
-            "TABULATION_SUB_CATEGORY1": "全国編"
+            "TABULATION_CATEGORY": "平成6年全国消費実態調査",
+            "TABULATION_SUB_CATEGORY1": "全国",
+            "TABULATION_SUB_CATEGORY2": "家計資産編（総資産）"
+          },
+          "DESCRIPTION": "",
+          "TITLE_SPEC": {
+            "TABLE_CATEGORY": "二人以上の一般世帯",
+            "TABLE_NAME": "全世帯，家計収支用途分類（６０）Ｂ４（住宅全世帯資産編），資産の種類・資産額階級（４１Ｃ），１世帯当たり１ヶ月間の収支，東京都（１）"
+          }
+        },
+        {
+          "@id": "0000020108",
+          "STAT_NAME": {
+            "@code": "00200502",
+            "$": "社会・人口統計体系"
+          },
+          "GOV_ORG": {
+            "@code": "00200",
+            "$": "総務省"
+          },
+          "STATISTICS_NAME": "市区町村データ 基礎データ（オリジナル）",
+          "TITLE": {
+            "@no": "0000020108",
+            "$": "Ｈ　居住"
+          },
+          "CYCLE": "年度次",
+          "SURVEY_DATE": 0,
+          "OPEN_DATE": "2026-06-19",
+          "SMALL_AREA": 0,
+          "COLLECT_AREA": "市区町村",
+          "MAIN_CATEGORY": {
+            "@code": "99",
+            "$": "その他"
+          },
+          "SUB_CATEGORY": {
+            "@code": "99",
+            "$": "その他"
+          },
+          "OVERALL_TOTAL_NUMBER": 3895663,
+          "UPDATED_DATE": "2026-06-19",
+          "STATISTICS_NAME_SPEC": {
+            "TABULATION_CATEGORY": "市区町村データ",
+            "TABULATION_SUB_CATEGORY1": "基礎データ（オリジナル）"
           },
           "DESCRIPTION": {
-            "TABULATION_CATEGORY_EXPLANATION": "注：全国には住所地外国を含む"
+            "TABULATION_CATEGORY_EXPLANATION": "社会・人口統計体系の市区町村ごとに集計したデータを提供します。"
           },
           "TITLE_SPEC": {
-            "TABLE_NAME": "男女，就業状態・仕事の主従，年齢別15歳以上人口",
-            "TABLE_EXPLANATION": "注：全国には住所地外国を含む。"
+            "TABLE_NAME": "Ｈ　居住"
           }
         }
       ]

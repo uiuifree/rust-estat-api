@@ -16,7 +16,7 @@ pub struct DataCatalog {
     #[serde(default)]
     pub parameter: Map<String, Value>,
     /// Datasets found. Empty when [`ApiResult::status`] is `1` (no match).
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub data_catalog_list_inf: DataCatalogListInf,
     /// Fields this crate does not know yet, kept as received.
     #[serde(flatten)]
@@ -32,7 +32,7 @@ pub struct DataCatalogListInf {
     #[serde(default, deserialize_with = "de::number")]
     pub number: u64,
     /// Position of the returned datasets.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub result_inf: ResultInf,
     /// Datasets.
     #[serde(default, deserialize_with = "de::one_or_many")]
@@ -53,7 +53,7 @@ pub struct DataCatalogInf {
     /// The dataset.
     pub dataset: Dataset,
     /// Its files and database tables.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub resources: Resources,
     /// Fields this crate does not know yet, kept as received.
     #[serde(flatten)]
@@ -66,10 +66,18 @@ pub struct DataCatalogInf {
 #[non_exhaustive]
 pub struct Dataset {
     /// Survey name with the government statistics code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub stat_name: Option<CodeName>,
     /// Agency with its code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub organization: Option<CodeName>,
     /// Names.
     #[serde(

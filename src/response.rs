@@ -149,10 +149,18 @@ pub struct TableInf {
     #[serde(rename = "@id")]
     pub id: String,
     /// Survey name (政府統計名) with the 8-digit government statistics code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub stat_name: Option<CodeName>,
     /// Agency (作成機関名) with its 5-digit code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub gov_org: Option<CodeName>,
     /// Name of the statistics and classification (提供統計名及び提供分類名).
     #[serde(
@@ -200,10 +208,18 @@ pub struct TableInf {
     )]
     pub collect_area: Option<String>,
     /// Major statistics field (統計大分野) with its 2-digit code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub main_category: Option<CodeName>,
     /// Minor statistics field (統計小分野) with its 2-digit code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub sub_category: Option<CodeName>,
     /// Number of values in the table without filters.
     #[serde(
@@ -413,7 +429,7 @@ pub struct StatsList {
     #[serde(default)]
     pub parameter: Map<String, Value>,
     /// Tables found. Empty when [`ApiResult::status`] is `1` (no match).
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub datalist_inf: DataListInf,
     /// Fields this crate does not know yet, kept as received.
     #[serde(flatten)]
@@ -429,7 +445,7 @@ pub struct DataListInf {
     #[serde(default, deserialize_with = "de::number")]
     pub number: u64,
     /// Position of the returned rows.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub result_inf: ResultInf,
     /// Tables.
     #[serde(
@@ -459,10 +475,18 @@ pub struct ListInf {
     #[serde(rename = "@id")]
     pub id: String,
     /// Survey name with its code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub stat_name: Option<CodeName>,
     /// Agency with its code.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub gov_org: Option<CodeName>,
     /// Fields this crate does not know yet, kept as received.
     #[serde(flatten)]
@@ -494,7 +518,7 @@ pub struct MetadataInf {
     /// The table.
     pub table_inf: TableInf,
     /// Its dimensions and their items.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub class_inf: ClassInf,
     /// Fields this crate does not know yet, kept as received.
     #[serde(flatten)]
@@ -651,17 +675,21 @@ impl StatsData {
 #[non_exhaustive]
 pub struct StatisticalData {
     /// Number and position of the returned values.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub result_inf: ResultInf,
     /// The table.
     pub table_inf: TableInf,
     /// Dimensions and the items that appear in the values. `None` with
     /// [`meta(false)`](crate::StatsDataParams::meta).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "de::object_or_empty",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub class_inf: Option<ClassInf>,
     /// Values. Empty when nothing matched or with
     /// [`count_only`](crate::StatsDataParams::count_only).
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de::object_or_default")]
     pub data_inf: DataInf,
     /// Fields this crate does not know yet, kept as received.
     #[serde(flatten)]

@@ -8,6 +8,7 @@ const STATS_LIST: &str = include_str!("fixtures/stats_list.json");
 const META_INFO: &str = include_str!("fixtures/meta_info.json");
 const STATS_DATA: &str = include_str!("fixtures/stats_data.json");
 const STATS_DATA_PAGE2: &str = include_str!("fixtures/stats_data_page2.json");
+const STATS_DATA_COUNT: &str = include_str!("fixtures/stats_data_count.json");
 const DATA_CATALOG: &str = include_str!("fixtures/data_catalog.json");
 
 fn estat(server: Option<&MockServer>, args: &[&str]) -> Output {
@@ -94,12 +95,12 @@ fn list() {
     mock.assert();
     assert_eq!(out["ok"], true);
     assert_eq!(out["command"], "list");
-    assert_eq!(out["params"]["SURVEY_YEARS"], "202201");
+    assert_eq!(out["params"]["SEARCH_WORD"], "家計 AND 東京");
     assert_eq!(out["rows"].as_array().unwrap().len(), 2);
-    assert_eq!(out["rows"][1]["@id"], "0003084821");
+    assert_eq!(out["rows"][1]["@id"], "0000020108");
     assert_eq!(
         out["meta"],
-        json!({"number": 101, "from": 1, "to": 2, "next_key": 3})
+        json!({"number": 2681, "from": 1, "to": 2, "next_key": 3})
     );
 
     // --ndjson prints one table per line
@@ -143,90 +144,124 @@ fn meta() {
     let server = MockServer::start();
     server.mock(|when, then| {
         when.path("/getMetaInfo")
-            .query_param("statsDataId", "0003218663")
+            .query_param("statsDataId", "0003448237")
             .query_param("lang", "J");
         then.status(200).body(META_INFO);
     });
     let out = stdout(&estat(
         Some(&server),
-        &["meta", "0003218663", "--lang", "ja"],
+        &["meta", "0003448237", "--lang", "ja"],
     ));
-    assert_eq!(out["data"]["TABLE_INF"]["@id"], "0003218663");
+    assert_eq!(out["data"]["TABLE_INF"]["@id"], "0003448237");
     assert_eq!(
-        out["data"]["CLASS_INF"]["CLASS_OBJ"][3]["CLASS"][0]["@code"],
-        "2016000000"
+        out["data"]["CLASS_INF"]["CLASS_OBJ"][5]["CLASS"][0]["@code"],
+        "1601"
     );
 
     // Without rows, --ndjson prints the whole result on one line
     let output = estat(
         Some(&server),
-        &["meta", "0003218663", "--ndjson", "--lang", "ja"],
+        &["meta", "0003448237", "--ndjson", "--lang", "ja"],
     );
     assert_eq!(lines(&output).len(), 1);
 }
 
 #[test]
 fn data_rows_with_names() {
+    // A special character, an annotation and a value without unit
+    let mut body: Value = serde_json::from_str(STATS_DATA).unwrap();
+    let values = &mut body["GET_STATS_DATA"]["STATISTICAL_DATA"]["DATA_INF"]["VALUE"];
+    values[0]["@annotation"] = json!("J1");
+    values[1]["$"] = json!("-");
+    values[1].as_object_mut().unwrap().remove("@unit");
+    body["GET_STATS_DATA"]["STATISTICAL_DATA"]["DATA_INF"]["ANNOTATION"] =
+        json!({"@annotation": "J1", "$": "注記"});
     let server = MockServer::start();
     let mock = server.mock(|when, then| {
         when.path("/getStatsData")
-            .query_param("statsDataId", "0003218663")
-            .query_param("cdArea", "00000,01000,02000")
+            .query_param("statsDataId", "0003448237")
+            .query_param("cdArea", "13000")
             .query_param("lvCat01", "1")
-            .query_param("cdTimeFrom", "2016000000")
+            .query_param("cdTimeFrom", "1301")
             .query_param("cdTimeTo", "max")
-            .query_param("limit", "3")
+            .query_param("limit", "4")
             .query_param("startPosition", "1");
-        then.status(200).body(STATS_DATA);
+        then.status(200).body(body.to_string());
     });
     let out = stdout(&estat(
         Some(&server),
         &[
             "data",
-            "0003218663",
+            "0003448237",
             "--code",
-            "area=00000,01000,02000",
+            "area=13000",
             "--level",
             "cat01=1",
             "--from",
-            "time=2016000000",
+            "time=1301",
             "--to",
             "time=max",
             "--limit",
-            "3",
+            "4",
             "--start",
             "1",
         ],
     ));
     mock.assert();
     let rows = out["rows"].as_array().unwrap();
-    assert_eq!(rows.len(), 3);
+    assert_eq!(rows.len(), 4);
     assert_eq!(
-        rows[1],
+        rows[2],
         json!({
-            "tab": "005", "tab_name": "従業者数　総数",
-            "time": "2016000000", "time_name": "2016年",
-            "area": "01000", "area_name": "北海道",
-            "cat01": "0000", "cat01_name": "総数",
-            "unit": "人", "value": "2340283", "number": 2340283.0
+            "tab": "001", "tab_name": "人口",
+            "time": "1701", "time_name": "2022年10月1日現在",
+            "area": "13000", "area_name": "東京都",
+            "cat01": "000", "cat01_name": "男女計",
+            "cat02": "01000", "cat02_name": "総数",
+            "cat03": "001", "cat03_name": "総人口",
+            "unit": "千人", "value": "14038", "number": 14038.0
         })
     );
     assert_eq!(rows[0]["annotation"], "J1");
-    assert_eq!(rows[2]["number"], Value::Null);
-    assert_eq!(out["params"]["NARROWING_COND"]["CODE_TAB_SELECT"], "005");
+    assert_eq!(rows[1]["number"], Value::Null);
+    assert_eq!(rows[1].get("unit"), None);
+    assert_eq!(out["params"]["NARROWING_COND"]["CODE_AREA_SELECT"], 13000);
     let meta = &out["meta"];
-    assert_eq!(meta["total"], 4);
-    assert_eq!(meta["next_key"], 4);
-    assert_eq!(meta["table"]["@id"], "0003218663");
-    assert_eq!(meta["notes"]["X"], "秘匿");
-    assert_eq!(meta["annotations"]["J1"], "全国には住所地外国を含む");
+    assert_eq!(meta["total"], 5);
+    assert_eq!(meta["next_key"], 5);
+    assert_eq!(meta["table"]["@id"], "0003448237");
+    assert_eq!(meta["notes"]["***"], "該当数値がないもの");
+    assert_eq!(meta["annotations"]["J1"], "注記");
+}
+
+#[test]
+fn data_count_and_timeout() {
+    let server = MockServer::start();
+    server.mock(|when, then| {
+        when.query_param("cntGetFlg", "Y")
+            .query_param("metaGetFlg", "N");
+        then.status(200).body(STATS_DATA_COUNT);
+    });
+    server.mock(|when, then| {
+        when.query_param("statsDataId", "slow");
+        then.status(200)
+            .body(STATS_DATA)
+            .delay(std::time::Duration::from_secs(3));
+    });
+    let out = stdout(&estat(Some(&server), &["data", "1", "--count-only"]));
+    assert_eq!(out["meta"]["total"], 27360);
+    assert_eq!(out["rows"], json!([]));
+
+    let (code, error) = failure(&estat(Some(&server), &["data", "slow", "--timeout", "1"]));
+    assert_eq!(code, 4);
+    assert_eq!(error["error"]["message"], "connection error: timed out");
 }
 
 #[test]
 fn data_all_pages() {
     let server = MockServer::start();
     server.mock(|when, then| {
-        when.query_param("startPosition", "4");
+        when.query_param("startPosition", "5");
         then.status(200).body(STATS_DATA_PAGE2);
     });
     server.mock(|when, then| {
@@ -238,12 +273,10 @@ fn data_all_pages() {
         &["data", "ds-1", "--dataset", "--all", "--ndjson"],
     );
     let rows = lines(&output);
-    let areas: Vec<&str> = rows.iter().map(|r| r["area"].as_str().unwrap()).collect();
-    assert_eq!(areas, ["00000", "01000", "02000", "03000"]);
+    let times: Vec<&str> = rows.iter().map(|r| r["time"].as_str().unwrap()).collect();
+    assert_eq!(times, ["1601", "1301", "1701", "1801", "1901"]);
     // The second page has no metadata of its own, but names come from the first
-    assert_eq!(rows[3]["area_name"], Value::Null);
-    assert_eq!(rows[1]["area_name"], "北海道");
-    assert_eq!(rows[3].get("unit"), None);
+    assert_eq!(rows[4]["area_name"], "東京都");
 }
 
 #[test]
@@ -304,10 +337,10 @@ fn catalog() {
     ));
     assert_eq!(out["rows"].as_array().unwrap().len(), 2);
     assert_eq!(
-        out["rows"][1]["RESOURCES"]["RESOURCE"][0]["URL"],
-        "0003456789"
+        out["rows"][0]["RESOURCES"]["RESOURCE"][0]["URL"],
+        "0004029362"
     );
-    assert_eq!(out["meta"]["number"], 2);
+    assert_eq!(out["meta"]["number"], 110);
 
     // No data type filter: the parameter is not sent
     let server = MockServer::start();

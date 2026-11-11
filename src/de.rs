@@ -92,6 +92,15 @@ where
     }
 }
 
+/// An object, or the default for the `""` (or `null`) that an empty element becomes.
+pub fn object_or_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: DeserializeOwned + Default,
+{
+    object_or_empty(deserializer).map(Option::unwrap_or_default)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,6 +109,12 @@ mod tests {
     #[derive(Debug, Deserialize, PartialEq)]
     struct Item {
         id: u8,
+    }
+
+    #[derive(Debug, Default, Deserialize, PartialEq)]
+    struct Holder2 {
+        #[serde(default)]
+        n: u8,
     }
 
     #[derive(Debug, Deserialize)]
@@ -112,6 +127,8 @@ mod tests {
         count: Option<u32>,
         #[serde(default, deserialize_with = "object_or_empty")]
         object: Option<Item>,
+        #[serde(default, deserialize_with = "object_or_default")]
+        list: Holder2,
     }
 
     fn holder(value: Value) -> Result<Holder, serde_json::Error> {
@@ -176,5 +193,12 @@ mod tests {
             Some(Item { id: 7 })
         );
         assert!(holder(json!({"object": {"id": "x"}})).is_err());
+
+        assert_eq!(
+            holder(json!({"list": ""})).unwrap().list,
+            Holder2::default()
+        );
+        assert_eq!(holder(json!({"list": {"n": 2}})).unwrap().list.n, 2);
+        assert!(holder(json!({"list": {"n": "x"}})).is_err());
     }
 }

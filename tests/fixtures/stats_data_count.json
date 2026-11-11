@@ -1,0 +1,65 @@
+{
+  "GET_STATS_DATA": {
+    "RESULT": {
+      "STATUS": 0,
+      "ERROR_MSG": "正常に終了しました。",
+      "DATE": "2026-11-12T08:04:34.605+09:00"
+    },
+    "PARAMETER": {
+      "LANG": "J",
+      "STATS_DATA_ID": "0003448237",
+      "DATA_FORMAT": "J",
+      "START_POSITION": 1,
+      "METAGET_FLG": "N",
+      "CNT_GET_FLG": "Y"
+    },
+    "STATISTICAL_DATA": {
+      "RESULT_INF": {
+        "TOTAL_NUMBER": 27360
+      },
+      "TABLE_INF": {
+        "@id": "0003448237",
+        "STAT_NAME": {
+          "@code": "00200524",
+          "$": "人口推計"
+        },
+        "GOV_ORG": {
+          "@code": "00200",
+          "$": "総務省"
+        },
+        "STATISTICS_NAME": "人口推計 各年10月1日現在人口 令和２年国勢調査基準 統計表",
+        "TITLE": {
+          "@no": "010",
+          "$": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
+        },
+        "CYCLE": "年次",
+        "SURVEY_DATE": 0,
+        "OPEN_DATE": "2025-04-14",
+        "SMALL_AREA": 0,
+        "COLLECT_AREA": "該当なし",
+        "MAIN_CATEGORY": {
+          "@code": "02",
+          "$": "人口・世帯"
+        },
+        "SUB_CATEGORY": {
+          "@code": "01",
+          "$": "人口"
+        },
+        "OVERALL_TOTAL_NUMBER": 27360,
+        "UPDATED_DATE": "2025-10-03",
+        "STATISTICS_NAME_SPEC": {
+          "TABULATION_CATEGORY": "人口推計",
+          "TABULATION_SUB_CATEGORY1": "各年10月1日現在人口",
+          "TABULATION_SUB_CATEGORY2": "令和２年国勢調査基準",
+          "TABULATION_SUB_CATEGORY3": "統計表"
+        },
+        "DESCRIPTION": "",
+        "TITLE_SPEC": {
+          "TABLE_NAME": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
+        },
+        "releaseCount": 6
+      },
+      "DATA_INF": ""
+    }
+  }
+}
