@@ -184,7 +184,8 @@ and `number` (`null` for special characters). Filters are `--code DIM=CODES`, `-
 `--all` follows `NEXT_KEY`; without it, `meta.next_key` is the value to pass to `--start`.
 `--ndjson` prints one row per line.
 
-Errors are printed to stderr as `{"ok": false, "error": {"kind", "message", "status"}}`.
+Results are `{"ok": true, "command", "params", "rows" or "data", "meta"}`, where `params` is the
+`PARAMETER` element e-Stat echoes back. Errors are printed to stderr as `{"ok": false, "error": {"kind", "message", "status"}}`.
 
 | Exit code | Meaning |
 |-----------|---------|

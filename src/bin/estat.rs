@@ -270,6 +270,8 @@ impl From<EstatError> for CliError {
 /// Successful result: `rows` are printed one per line with `--ndjson`.
 struct Output {
     command: &'static str,
+    /// Parameters as e-Stat received them (`PARAMETER`).
+    params: Map<String, Value>,
     rows: Option<Vec<Value>>,
     data: Option<Value>,
     meta: Value,
@@ -277,7 +279,7 @@ struct Output {
 
 impl Output {
     fn to_json(&self) -> Value {
-        let mut out = json!({"ok": true, "command": self.command});
+        let mut out = json!({"ok": true, "command": self.command, "params": self.params});
         if let Some(rows) = &self.rows {
             out["rows"] = Value::Array(rows.clone());
         }
@@ -395,7 +397,8 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             if *surveys {
                 params = params.stats_name_list();
             }
-            let list = api(cli)?.stats_list(&params).await?.datalist_inf;
+            let response = api(cli)?.stats_list(&params).await?;
+            let list = response.datalist_inf;
             let rows = if *surveys {
                 list.list_inf.iter().map(to_value).collect()
             } else {
@@ -403,6 +406,7 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             };
             Ok(Output {
                 command: "list",
+                params: response.parameter,
                 rows: Some(rows),
                 data: None,
                 meta: json!({
@@ -417,6 +421,7 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             let meta = api(cli)?.meta_info(stats_data_id).await?;
             Ok(Output {
                 command: "meta",
+                params: meta.parameter,
                 rows: None,
                 data: Some(to_value(&meta.metadata_inf)),
                 meta: json!({}),
@@ -477,6 +482,7 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
                 .collect();
             Ok(Output {
                 command: "data",
+                params: data.parameter.clone(),
                 rows: Some(data.values().iter().map(|v| value_row(&data, v)).collect()),
                 data: None,
                 meta: json!({
@@ -506,9 +512,11 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             if let Some(v) = resource_id {
                 params = params.resource_id(v);
             }
-            let list = api(cli)?.data_catalog(&params).await?.data_catalog_list_inf;
+            let response = api(cli)?.data_catalog(&params).await?;
+            let list = response.data_catalog_list_inf;
             Ok(Output {
                 command: "catalog",
+                params: response.parameter,
                 rows: Some(list.data_catalog_inf.iter().map(to_value).collect()),
                 data: None,
                 meta: json!({
@@ -585,6 +593,7 @@ mod tests {
     fn stdout_errors() {
         let output = Output {
             command: "meta",
+            params: Map::new(),
             rows: None,
             data: None,
             meta: json!({}),

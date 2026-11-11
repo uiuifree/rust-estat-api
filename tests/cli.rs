@@ -94,6 +94,7 @@ fn list() {
     mock.assert();
     assert_eq!(out["ok"], true);
     assert_eq!(out["command"], "list");
+    assert_eq!(out["params"]["SURVEY_YEARS"], "202201");
     assert_eq!(out["rows"].as_array().unwrap().len(), 2);
     assert_eq!(out["rows"][1]["@id"], "0003084821");
     assert_eq!(
@@ -212,6 +213,7 @@ fn data_rows_with_names() {
     );
     assert_eq!(rows[0]["annotation"], "J1");
     assert_eq!(rows[2]["number"], Value::Null);
+    assert_eq!(out["params"]["NARROWING_COND"]["CODE_TAB_SELECT"], "005");
     let meta = &out["meta"];
     assert_eq!(meta["total"], 4);
     assert_eq!(meta["next_key"], 4);
