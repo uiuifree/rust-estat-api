@@ -1,5 +1,7 @@
 use estat_api::{
-    DataCatalogParams, Dimension, EstatApi, EstatError, Lang, StatsDataParams, StatsListParams,
+    CollectArea, DataCatalogParams, DatasetParams, DatasetsParams, Dimension, EstatApi, EstatError,
+    Lang, PostDatasetParams, ReplaceSpChar, StatsDataParams, StatsDatasParams, StatsDatasRequest,
+    StatsListParams,
 };
 use httpmock::prelude::*;
 use serde_json::{Value, json};
@@ -15,6 +17,12 @@ const STATS_DATA_PAGE2: &str = include_str!("fixtures/stats_data_page2.json");
 const STATS_DATA_COUNT: &str = include_str!("fixtures/stats_data_count.json");
 const STATS_LIST_NONE: &str = include_str!("fixtures/stats_list_none.json");
 const DATA_CATALOG: &str = include_str!("fixtures/data_catalog.json");
+const STATS_DATAS: &str = include_str!("fixtures/stats_datas.json");
+const STATS_DATAS_PARTIAL: &str = include_str!("fixtures/stats_datas_partial.json");
+const DATASETS: &str = include_str!("fixtures/datasets.json");
+const DATASET: &str = include_str!("fixtures/dataset.json");
+const POST_DATASET: &str = include_str!("fixtures/post_dataset.xml");
+const POST_DATASET_ERROR: &str = include_str!("fixtures/post_dataset_error.xml");
 const BAD_APP_ID: &str = r#"{"GET_STATS_LIST":{"RESULT":{"STATUS":100,"ERROR_MSG":"認証に失敗しました。アプリケーションIDを確認して下さい。","DATE":"2026-11-12T00:19:24.956+09:00"},"PARAMETER":{"DATA_FORMAT":"J","LIMIT":1}}}"#;
 
 fn api(server: &MockServer) -> EstatApi {
@@ -455,6 +463,237 @@ async fn data_catalog_parses_datasets() {
         resource.title.as_ref().unwrap().table_no.as_deref(),
         Some("19")
     );
+}
+
+#[tokio::test]
+async fn stats_datas_posts_the_spec() {
+    let params = StatsDatasParams::new()
+        .request(
+            StatsDatasRequest::table("0003448237")
+                .code(Dimension::Area, "13000")
+                .code(Dimension::Cat03, "001"),
+        )
+        .request(
+            StatsDatasRequest::table("0003448237")
+                .code(Dimension::Area, "27000")
+                .code(Dimension::Time, "1601"),
+        )
+        .explanation(false)
+        .annotation(true)
+        .replace_sp_char(ReplaceSpChar::Zero);
+    let server = MockServer::start_async().await;
+    let mock = server
+        .mock_async(|when, then| {
+            when.method(POST)
+                .path("/getStatsDatas")
+                .x_www_form_urlencoded_tuple("appId", "test-id")
+                .x_www_form_urlencoded_tuple("explanationGetFlg", "N")
+                .x_www_form_urlencoded_tuple("annotationGetFlg", "Y")
+                .x_www_form_urlencoded_tuple("replaceSpChar", "1")
+                .x_www_form_urlencoded_tuple("statsDatasSpec", params.spec());
+            then.status(200).body(STATS_DATAS);
+        })
+        .await;
+
+    let datas = api(&server).stats_datas(&params).await.unwrap();
+    mock.assert_async().await;
+    assert_eq!(datas.result.status, 0);
+    assert_eq!(datas.parameter_list["META_GET_FLG"], "Y");
+    let list = &datas.statistical_data_list;
+    assert_eq!(list.result_inf.total_number, Some(6));
+    assert_eq!(list.table(1).unwrap().id, "0003448237");
+    assert_eq!(list.table(1).unwrap().request_no, Some(1));
+    assert_eq!(list.table(3), None);
+
+    let tokyo = list.values(1);
+    assert_eq!(tokyo.len(), 5);
+    assert_eq!(tokyo[0].value, "14048");
+    let classes = list.class_inf(1).unwrap();
+    assert_eq!(classes.label(&tokyo[0], Dimension::Area), Some("東京都"));
+    assert_eq!(classes.label(&tokyo[0], Dimension::Cat15), None);
+
+    // Request 2 has a single VALUE
+    let osaka = list.values(2);
+    assert_eq!(osaka.len(), 1);
+    assert_eq!(osaka[0].as_f64(), Some(8838.0));
+    assert_eq!(
+        list.class_inf(2).unwrap().label(&osaka[0], Dimension::Area),
+        Some("大阪府")
+    );
+    assert!(list.values(3).is_empty());
+    assert_eq!(list.class_inf(3), None);
+}
+
+#[tokio::test]
+async fn stats_datas_partly_empty() {
+    let server = serve(200, STATS_DATAS_PARTIAL).await;
+    let params = StatsDatasParams::new()
+        .request(StatsDatasRequest::table("0003448237").code(Dimension::Area, "13000"))
+        .request(StatsDatasRequest::table("0003448237").code(Dimension::Area, "99999"));
+    let datas = api(&server).stats_datas(&params).await.unwrap();
+    // Status 2: some requests matched nothing
+    assert_eq!(datas.result.status, 2);
+    assert!(datas.result.error_msg.contains("リクエスト番号(2)"));
+    let list = &datas.statistical_data_list;
+    assert_eq!(list.values(1).len(), 1);
+    assert!(list.values(2).is_empty());
+    assert!(list.table(2).is_some());
+}
+
+#[tokio::test]
+async fn stats_datas_errors() {
+    let error = |status: u16, message: &str| {
+        json!({"GET_STATS_DATAS": {"RESULT": {"STATUS": status, "ERROR_MSG": message, "DATE": ""}, "PARAMETER_LIST": {}}}).to_string()
+    };
+    let params = StatsDatasParams::new().request(StatsDatasRequest::dataset("ds"));
+    let server = serve(200, error(400, "返却セルデータ数が多すぎます。")).await;
+    let failure = api(&server).stats_datas(&params).await.unwrap_err();
+    assert_eq!(failure.status(), Some(400));
+    let server = serve(
+        200,
+        error(401, "リクエスト番号 2 でエラー300を検出しました。"),
+    )
+    .await;
+    let failure = api(&server).stats_datas(&params).await.unwrap_err();
+    assert!(failure.to_string().contains("エラー300"));
+
+    let api = EstatApi::with_app_id("k").with_base_url("not a url");
+    let failure = api.stats_datas(&params).await.unwrap_err();
+    assert!(matches!(failure, EstatError::InvalidArgument(_)));
+}
+
+#[tokio::test]
+async fn datasets_list_and_one() {
+    let server = MockServer::start_async().await;
+    let list_mock = server
+        .mock_async(|when, then| {
+            when.method(GET)
+                .path("/refDataset")
+                .query_param("appId", "test-id")
+                .query_param("collectArea", "2")
+                .query_param("explanationGetFlg", "N");
+            then.status(200).body(DATASETS);
+        })
+        .await;
+    let one_mock = server
+        .mock_async(|when, then| {
+            when.method(GET)
+                .path("/refDataset")
+                .query_param("dataSetId", "CTCdemo-kokusei1");
+            then.status(200).body(DATASET);
+        })
+        .await;
+    let api = api(&server);
+
+    let params = DatasetsParams::new()
+        .collect_area(CollectArea::Prefecture)
+        .explanation(false);
+    let list = api.datasets(&params).await.unwrap();
+    list_mock.assert_async().await;
+    let inf = &list.dataset_list_inf;
+    assert_eq!(inf.number, 20);
+    assert_eq!(inf.dataset_inf.len(), 2);
+    let named = &inf.dataset_inf[0];
+    assert_eq!(named.dataset_name.as_deref(), Some("test01010101"));
+    assert_eq!(named.public_state.as_deref(), Some("YES"));
+    assert_eq!(named.result_inf.total_number, Some(40002));
+    assert_eq!(named.table_inf.as_ref().unwrap().id, "0000020201");
+    assert_eq!(named.narrowing_cond, None);
+    // Not every dataset has a name
+    assert_eq!(inf.dataset_inf[1].dataset_name, None);
+
+    let one = api.dataset("CTCdemo-kokusei1").await.unwrap();
+    one_mock.assert_async().await;
+    let dataset = &one.dataset_inf;
+    assert_eq!(dataset.id, "CTCdemo-kokusei1");
+    let cond = dataset.narrowing_cond.as_ref().unwrap();
+    assert_eq!(cond["CODE_CAT01_SELECT"], "00710");
+    assert_eq!(cond["LEVEL_AREA_COND"], "1-4");
+    assert_eq!(dataset.result_inf.total_number, Some(14382));
+    let one = api
+        .dataset(DatasetParams::new("CTCdemo-kokusei1").explanation(true))
+        .await
+        .unwrap();
+    assert_eq!(one.parameter["DATASET_ID"], "CTCdemo-kokusei1");
+}
+
+#[tokio::test]
+async fn post_dataset_register_and_delete() {
+    let server = MockServer::start_async().await;
+    let register = server
+        .mock_async(|when, then| {
+            when.method(POST)
+                .path("/postDataset")
+                .x_www_form_urlencoded_tuple("appId", "test-id")
+                .x_www_form_urlencoded_tuple("processMode", "E")
+                .x_www_form_urlencoded_tuple("statsDataId", "0003448237")
+                .x_www_form_urlencoded_tuple("dataSetId", "estat-api-test")
+                .x_www_form_urlencoded_tuple("dataSetName", "estat-api test")
+                .x_www_form_urlencoded_tuple("openSpecified", "0")
+                .x_www_form_urlencoded_tuple("cdArea", "13000")
+                .x_www_form_urlencoded_tuple("lvTab", "1")
+                .x_www_form_urlencoded_tuple("cdTimeFrom", "1601")
+                .x_www_form_urlencoded_tuple("cdTimeTo", "max");
+            then.status(200)
+                .header("content-type", "application/xml;charset=utf-8")
+                .body(POST_DATASET);
+        })
+        .await;
+    let delete = server
+        .mock_async(|when, then| {
+            when.method(POST)
+                .path("/postDataset")
+                .x_www_form_urlencoded_tuple("processMode", "D")
+                .x_www_form_urlencoded_tuple("dataSetId", "estat-api-test");
+            then.status(200)
+                .body(POST_DATASET.replace(r#"mode="add""#, r#"mode="delete""#));
+        })
+        .await;
+    // postDataset sits next to the json directory, not inside it
+    let api = EstatApi::with_app_id("test-id").with_base_url(server.url("/json"));
+
+    let params = PostDatasetParams::register("0003448237")
+        .dataset_id("estat-api-test")
+        .name("estat-api test")
+        .public(false)
+        .code(Dimension::Area, "13000")
+        .level(Dimension::Tab, "1")
+        .code_from(Dimension::Time, "1601")
+        .code_to(Dimension::Time, "max");
+    let post = api.post_dataset(&params).await.unwrap();
+    register.assert_async().await;
+    assert_eq!(post.result.status, 0);
+    let regist = &post.regist_inf;
+    assert_eq!(regist.mode, "add");
+    assert_eq!(regist.dataset_id, "estat-api-test");
+    assert_eq!(regist.total_number, Some(570));
+
+    let post = api
+        .post_dataset(&PostDatasetParams::delete("estat-api-test"))
+        .await
+        .unwrap();
+    delete.assert_async().await;
+    assert_eq!(post.regist_inf.mode, "delete");
+}
+
+#[tokio::test]
+async fn post_dataset_errors() {
+    let server = MockServer::start_async().await;
+    server
+        .mock_async(|when, then| {
+            when.path("/postDataset");
+            then.status(400)
+                .header("content-type", "application/xml;charset=utf-8")
+                .body(POST_DATASET_ERROR);
+        })
+        .await;
+    let params = PostDatasetParams::register("").public(true);
+    let error = api(&server).post_dataset(&params).await.unwrap_err();
+    assert!(error.is_invalid_parameter(), "{error}");
+
+    let api = EstatApi::with_app_id("k").with_base_url("not a url");
+    let error = api.post_dataset(&params).await.unwrap_err();
+    assert!(matches!(error, EstatError::InvalidArgument(_)));
 }
 
 #[tokio::test]

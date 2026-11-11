@@ -2,20 +2,23 @@
 #![warn(missing_docs)]
 
 pub mod catalog;
+pub mod dataset;
 mod de;
 mod error;
 mod params;
 pub mod response;
 
 pub use catalog::DataCatalog;
+pub use dataset::{DatasetList, PostDataset, RefDataset};
 pub use error::EstatError;
 pub use params::{
-    CollectArea, DataCatalogParams, DataType, Dimension, MetaInfoParams, ReplaceSpChar, SearchKind,
-    StatsDataParams, StatsListParams,
+    CollectArea, DataCatalogParams, DataType, DatasetParams, DatasetsParams, Dimension,
+    MetaInfoParams, PostDatasetParams, ReplaceSpChar, SearchKind, StatsDataParams,
+    StatsDatasParams, StatsDatasRequest, StatsListParams,
 };
 pub use response::{
     ApiResult, Class, ClassInf, ClassObj, DataInf, DataListInf, DataValue, MetaInfo, ResultInf,
-    StatisticalData, StatsData, StatsList, TableInf,
+    StatisticalData, StatisticalDataList, StatsData, StatsDatas, StatsList, TableInf,
 };
 
 /// Re-export of `reqwest`, for building a client to pass to
@@ -256,6 +259,76 @@ impl EstatApi {
             .await
     }
 
+    /// Values of several tables or datasets in one request (`getStatsDatas`,
+    /// 統計データ一括取得). The requests together may return at most 100,000
+    /// values, and there is no paging; use [`stats_data`](Self::stats_data)
+    /// for more.
+    ///
+    /// # Errors
+    ///
+    /// [`EstatError::Api`] with `400` when the requests select too many
+    /// values, or `401` when one of them fails (the message names the
+    /// request and its error). Otherwise the same as [`stats_list`](Self::stats_list).
+    pub async fn stats_datas(&self, params: &StatsDatasParams) -> Result<StatsDatas, EstatError> {
+        let url = endpoint(&self.base_url, "getStatsDatas")?;
+        let request = self.client.post(url).form(&self.pairs(&params.form()));
+        let (status, text) = self.send(request).await?;
+        parse_json(status, &text, "GET_STATS_DATAS")
+    }
+
+    /// Datasets you can use: your own and those others made public
+    /// (`refDataset` without an ID, データセット参照).
+    ///
+    /// # Errors
+    ///
+    /// Same as [`stats_list`](Self::stats_list).
+    pub async fn datasets(&self, params: &DatasetsParams) -> Result<DatasetList, EstatError> {
+        self.request("refDataset", "GET_DATASET_LIST", params.query())
+            .await
+    }
+
+    /// One dataset with its filters (`refDataset` with an ID, データセット参照).
+    /// Takes a dataset ID or [`DatasetParams`].
+    ///
+    /// # Errors
+    ///
+    /// [`EstatError::Api`] with `300` when there is no dataset with that ID.
+    /// Otherwise the same as [`stats_list`](Self::stats_list).
+    pub async fn dataset(
+        &self,
+        params: impl Into<DatasetParams>,
+    ) -> Result<RefDataset, EstatError> {
+        let params = params.into();
+        self.request("refDataset", "REF_DATASET", params.query())
+            .await
+    }
+
+    /// Registers, updates or deletes a dataset (`postDataset`, データセット登録).
+    ///
+    /// This changes data on e-Stat under your application ID. e-Stat answers
+    /// this call in XML only, and it is sent to `postDataset` next to the
+    /// `json` directory of the base URL.
+    ///
+    /// # Errors
+    ///
+    /// [`EstatError::Api`] with `101` to `104` for missing or invalid
+    /// parameters, `301` when the dataset belongs to another application ID,
+    /// `302` when the filters select nothing. Otherwise the same as
+    /// [`stats_list`](Self::stats_list).
+    pub async fn post_dataset(
+        &self,
+        params: &PostDatasetParams,
+    ) -> Result<PostDataset, EstatError> {
+        let base = self
+            .base_url
+            .strip_suffix("/json")
+            .unwrap_or(&self.base_url);
+        let url = endpoint(base, "postDataset")?;
+        let request = self.client.post(url).form(&self.pairs(params.query()));
+        let (status, text) = self.send(request).await?;
+        PostDataset::from_xml(status, &text)
+    }
+
     async fn request<T: DeserializeOwned>(
         &self,
         path: &str,
@@ -263,53 +336,72 @@ impl EstatApi {
         query: &[(String, String)],
     ) -> Result<T, EstatError> {
         let url = self.url(path, query)?;
-        let mut request = self.client.get(url);
+        let (status, text) = self.send(self.client.get(url)).await?;
+        parse_json(status, &text, root)
+    }
+
+    async fn send(
+        &self,
+        mut request: reqwest::RequestBuilder,
+    ) -> Result<(u16, String), EstatError> {
         if let Some(timeout) = self.timeout {
             request = request.timeout(timeout);
         }
         let response = request.send().await.map_err(EstatError::connection)?;
-        let status = response.status();
+        let status = response.status().as_u16();
         let text = response.text().await.map_err(EstatError::connection)?;
+        Ok((status, text))
+    }
 
-        let body = match serde_json::from_str::<Value>(&text) {
-            Ok(Value::Object(mut map)) if map.contains_key(root) => map.remove(root),
-            _ if !status.is_success() => {
-                return Err(EstatError::HttpStatus(status.as_u16(), text));
-            }
-            Ok(_) => None,
-            Err(e) => return Err(EstatError::JsonParse(e)),
-        };
-        let Some(body) = body else {
-            return Err(EstatError::UnexpectedResponse(format!(
-                "no {root} in the body"
-            )));
-        };
-        let result = body
-            .get("RESULT")
-            .ok_or_else(|| EstatError::UnexpectedResponse(format!("no RESULT in {root}")))?;
-        let result = ApiResult::deserialize(result).map_err(EstatError::JsonParse)?;
-        if result.status >= 100 {
-            return Err(EstatError::Api {
-                status: result.status,
-                message: result.error_msg,
-            });
+    /// `appId`, `lang` and the parameters.
+    fn pairs(&self, query: &[(String, String)]) -> Vec<(String, String)> {
+        let mut pairs = vec![("appId".to_string(), self.app_id.clone())];
+        if let Some(lang) = self.lang {
+            pairs.push(("lang".into(), lang.code().into()));
         }
-        T::deserialize(body).map_err(EstatError::JsonParse)
+        pairs.extend_from_slice(query);
+        pairs
     }
 
     fn url(&self, path: &str, query: &[(String, String)]) -> Result<Url, EstatError> {
-        let mut url = Url::parse(&format!("{}/{}", self.base_url, path))
-            .map_err(|e| EstatError::InvalidArgument(format!("base url: {e}")))?;
-        {
-            let mut pairs = url.query_pairs_mut();
-            pairs.append_pair("appId", &self.app_id);
-            if let Some(lang) = self.lang {
-                pairs.append_pair("lang", lang.code());
-            }
-            pairs.extend_pairs(query);
-        }
+        let mut url = endpoint(&self.base_url, path)?;
+        url.query_pairs_mut().extend_pairs(self.pairs(query));
         Ok(url)
     }
+}
+
+fn endpoint(base: &str, path: &str) -> Result<Url, EstatError> {
+    Url::parse(&format!("{base}/{path}"))
+        .map_err(|e| EstatError::InvalidArgument(format!("base url: {e}")))
+}
+
+/// Checks `RESULT` and reads the body under `root`.
+fn parse_json<T: DeserializeOwned>(status: u16, text: &str, root: &str) -> Result<T, EstatError> {
+    let success = (200..300).contains(&status);
+    let body = match serde_json::from_str::<Value>(text) {
+        Ok(Value::Object(mut map)) if map.contains_key(root) => map.remove(root),
+        _ if !success => {
+            return Err(EstatError::HttpStatus(status, text.to_string()));
+        }
+        Ok(_) => None,
+        Err(e) => return Err(EstatError::JsonParse(e)),
+    };
+    let Some(body) = body else {
+        return Err(EstatError::UnexpectedResponse(format!(
+            "no {root} in the body"
+        )));
+    };
+    let result = body
+        .get("RESULT")
+        .ok_or_else(|| EstatError::UnexpectedResponse(format!("no RESULT in {root}")))?;
+    let result = ApiResult::deserialize(result).map_err(EstatError::JsonParse)?;
+    if result.status >= 100 {
+        return Err(EstatError::Api {
+            status: result.status,
+            message: result.error_msg,
+        });
+    }
+    T::deserialize(body).map_err(EstatError::JsonParse)
 }
 
 #[cfg(test)]

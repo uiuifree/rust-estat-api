@@ -27,7 +27,8 @@ pub enum EstatError {
     /// e-Stat returned an error in `RESULT`.
     ///
     /// `100` invalid application ID, `101` to `105` invalid parameters,
-    /// `200` to `299` server errors, `300` no table or dataset with that ID.
+    /// `200` to `299` server errors, `300` no table or dataset with that ID,
+    /// `301` and `302` refused dataset changes, `400` and `401` failed bulk requests.
     Api {
         /// `RESULT.STATUS`.
         status: u16,

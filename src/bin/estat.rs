@@ -6,8 +6,9 @@
 use clap::error::ErrorKind as ClapErrorKind;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use estat_api::{
-    CollectArea, DataCatalogParams, DataType, Dimension, EstatApi, EstatError, Lang, SearchKind,
-    StatsData, StatsDataParams, StatsListParams,
+    ClassInf, CollectArea, DataCatalogParams, DataType, DataValue, DatasetParams, DatasetsParams,
+    Dimension, EstatApi, EstatError, Lang, MetaInfoParams, PostDatasetParams, ReplaceSpChar,
+    SearchKind, StatsDataParams, StatsDatasParams, StatsDatasRequest, StatsListParams,
 };
 use serde_json::{Map, Value, json};
 use std::io::Write;
@@ -47,6 +48,10 @@ struct Cli {
     #[arg(long, global = true, default_value_t = 300)]
     timeout: u64,
 
+    /// Leave out explanations (explanationGetFlg=N).
+    #[arg(long, global = true)]
+    no_explanation: bool,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -76,18 +81,10 @@ enum Command {
         /// The ID is a dataset ID.
         #[arg(long)]
         dataset: bool,
-        /// Only these item codes, as DIM=CODES (area=13000,14000). Repeatable.
-        #[arg(long = "code", value_name = "DIM=CODES", value_parser = filter)]
-        codes: Vec<(Dimension, String)>,
-        /// Only this hierarchy level, as DIM=LEVEL (cat01=1-2). Repeatable.
-        #[arg(long = "level", value_name = "DIM=LEVEL", value_parser = filter)]
-        levels: Vec<(Dimension, String)>,
-        /// Only codes from this one on, as DIM=CODE (time=2015000000). Repeatable.
-        #[arg(long = "from", value_name = "DIM=CODE", value_parser = filter)]
-        from: Vec<(Dimension, String)>,
-        /// Only codes up to this one, as DIM=CODE. Repeatable.
-        #[arg(long = "to", value_name = "DIM=CODE", value_parser = filter)]
-        to: Vec<(Dimension, String)>,
+        #[command(flatten)]
+        filters: Filters,
+        #[command(flatten)]
+        values: ValueOptions,
         /// Maximum number of values per request.
         #[arg(long)]
         limit: Option<u64>,
@@ -115,6 +112,97 @@ enum Command {
         #[arg(long)]
         resource_id: Option<String>,
     },
+    /// Values of several tables in one request (getStatsDatas).
+    Datas {
+        /// A request as e-Stat parameters, such as
+        /// "statsDataId=0003448237&cdArea=13000". Repeatable, numbered from 1.
+        #[arg(long = "request", value_name = "PARAMS", required = true)]
+        requests: Vec<String>,
+        #[command(flatten)]
+        values: ValueOptions,
+    },
+    /// Datasets you can use (refDataset).
+    Datasets {
+        /// Area level of the tables.
+        #[arg(long, value_enum)]
+        collect_area: Option<AreaArg>,
+    },
+    /// One dataset with its filters (refDataset).
+    Dataset {
+        /// Dataset ID.
+        id: String,
+    },
+    /// Register or update a dataset of a table under your application ID (postDataset).
+    RegisterDataset {
+        /// Table ID.
+        stats_data_id: String,
+        /// Dataset ID; an existing one is updated. Generated when left out.
+        #[arg(long)]
+        id: Option<String>,
+        /// Name or description.
+        #[arg(long)]
+        name: Option<String>,
+        /// Let other users see and use it.
+        #[arg(long)]
+        public: bool,
+        #[command(flatten)]
+        filters: Filters,
+    },
+    /// Delete one of your datasets (postDataset).
+    DeleteDataset {
+        /// Dataset ID.
+        id: String,
+    },
+}
+
+/// Narrowing conditions shared by `data` and `register-dataset`.
+#[derive(Debug, Args)]
+struct Filters {
+    /// Only these item codes, as DIM=CODES (area=13000,14000). Repeatable.
+    #[arg(long = "code", value_name = "DIM=CODES", value_parser = filter)]
+    codes: Vec<(Dimension, String)>,
+    /// Only this hierarchy level, as DIM=LEVEL (cat01=1-2). Repeatable.
+    #[arg(long = "level", value_name = "DIM=LEVEL", value_parser = filter)]
+    levels: Vec<(Dimension, String)>,
+    /// Only codes from this one on, as DIM=CODE (time=2015000000). Repeatable.
+    #[arg(long = "from", value_name = "DIM=CODE", value_parser = filter)]
+    from: Vec<(Dimension, String)>,
+    /// Only codes up to this one, as DIM=CODE. Repeatable.
+    #[arg(long = "to", value_name = "DIM=CODE", value_parser = filter)]
+    to: Vec<(Dimension, String)>,
+}
+
+/// Options on the returned values, shared by `data` and `datas`.
+#[derive(Debug, Args)]
+struct ValueOptions {
+    /// Leave out metadata (metaGetFlg=N); rows then have no *_name.
+    #[arg(long)]
+    no_meta: bool,
+    /// Leave out annotations of values (annotationGetFlg=N).
+    #[arg(long)]
+    no_annotation: bool,
+    /// Replace special characters such as "-" or "X" in values.
+    #[arg(long, value_enum)]
+    replace_sp_char: Option<ReplaceArg>,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum ReplaceArg {
+    Keep,
+    Zero,
+    Empty,
+    Na,
+}
+
+impl From<ReplaceArg> for ReplaceSpChar {
+    fn from(replace: ReplaceArg) -> Self {
+        match replace {
+            ReplaceArg::Keep => ReplaceSpChar::Keep,
+            ReplaceArg::Zero => ReplaceSpChar::Zero,
+            ReplaceArg::Empty => ReplaceSpChar::Empty,
+            ReplaceArg::Na => ReplaceSpChar::Na,
+        }
+    }
 }
 
 /// Conditions shared by `list` and `catalog`.
@@ -193,6 +281,31 @@ impl From<DataTypeArg> for DataType {
             DataTypeArg::Db => DataType::Db,
         }
     }
+}
+
+/// Parses a request of `datas` written as a query string.
+fn datas_request(query: &str) -> Result<StatsDatasRequest, CliError> {
+    let url = estat_api::reqwest::Url::parse(&format!("q:?{query}")).expect("a valid URL");
+    let pairs: Vec<(String, String)> = url.query_pairs().into_owned().collect();
+    let id = |name: &str| {
+        pairs
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, v)| v.as_str())
+    };
+    let request = match (id("statsDataId"), id("dataSetId")) {
+        (Some(table), _) => StatsDatasRequest::table(table),
+        (None, Some(dataset)) => StatsDatasRequest::dataset(dataset),
+        (None, None) => {
+            return Err(CliError::new(
+                Failure::USAGE,
+                format!("request needs statsDataId or dataSetId: {query:?}"),
+            ));
+        }
+    };
+    Ok(pairs
+        .iter()
+        .fold(request, |request, (n, v)| request.param(n, v)))
 }
 
 /// Parses `DIM=VALUE`.
@@ -333,6 +446,45 @@ fn to_value(value: impl serde::Serialize) -> Value {
     serde_json::to_value(value).expect("response types serialize to JSON")
 }
 
+/// Applies `Filters` through the setters of a builder.
+macro_rules! filters {
+    ($params:expr, $filters:expr) => {{
+        let f = $filters;
+        let mut p = $params;
+        for (dim, v) in &f.codes {
+            p = p.code(*dim, v);
+        }
+        for (dim, v) in &f.levels {
+            p = p.level(*dim, v);
+        }
+        for (dim, v) in &f.from {
+            p = p.code_from(*dim, v);
+        }
+        for (dim, v) in &f.to {
+            p = p.code_to(*dim, v);
+        }
+        p
+    }};
+}
+
+/// Applies `ValueOptions` through the setters of a builder.
+macro_rules! value_options {
+    ($params:expr, $options:expr) => {{
+        let o = $options;
+        let mut p = $params;
+        if o.no_meta {
+            p = p.meta(false);
+        }
+        if o.no_annotation {
+            p = p.annotation(false);
+        }
+        if let Some(v) = o.replace_sp_char {
+            p = p.replace_sp_char(v.into());
+        }
+        p
+    }};
+}
+
 /// Applies the shared conditions through the setters of either builder.
 macro_rules! search {
     ($params:expr, $search:expr) => {{
@@ -371,12 +523,12 @@ macro_rules! search {
 
 /// A value as a flat object: codes by dimension id, their names when the
 /// metadata has them, then unit, annotation and value.
-fn value_row(data: &StatsData, value: &estat_api::DataValue) -> Value {
+fn value_row(classes: Option<&ClassInf>, value: &DataValue) -> Map<String, Value> {
     let mut row = Map::new();
     for dim in Dimension::ALL {
         if let Some(code) = value.code(dim) {
             row.insert(dim.id().into(), code.into());
-            if let Some(name) = data.label(value, dim) {
+            if let Some(name) = classes.and_then(|c| c.label(value, dim)) {
                 row.insert(format!("{}_name", dim.id()), name.into());
             }
         }
@@ -389,7 +541,7 @@ fn value_row(data: &StatsData, value: &estat_api::DataValue) -> Value {
     }
     row.insert("value".into(), value.value.as_str().into());
     row.insert("number".into(), value.as_f64().into());
-    Value::Object(row)
+    row
 }
 
 async fn run(cli: &Cli) -> Result<Output, CliError> {
@@ -405,6 +557,9 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             }
             if *surveys {
                 params = params.stats_name_list();
+            }
+            if cli.no_explanation {
+                params = params.explanation(false);
             }
             let response = api(cli)?.stats_list(&params).await?;
             let list = response.datalist_inf;
@@ -427,7 +582,8 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             })
         }
         Command::Meta { stats_data_id } => {
-            let meta = api(cli)?.meta_info(stats_data_id).await?;
+            let params = MetaInfoParams::new(stats_data_id).explanation(!cli.no_explanation);
+            let meta = api(cli)?.meta_info(params).await?;
             Ok(Output {
                 command: "meta",
                 params: meta.parameter,
@@ -439,31 +595,21 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
         Command::Data {
             id,
             dataset,
-            codes,
-            levels,
-            from,
-            to,
+            filters,
+            values,
             limit,
             start,
             all,
             count_only,
         } => {
-            let mut params = if *dataset {
+            let params = if *dataset {
                 StatsDataParams::dataset(id)
             } else {
                 StatsDataParams::table(id)
             };
-            for (dim, v) in codes {
-                params = params.code(*dim, v);
-            }
-            for (dim, v) in levels {
-                params = params.level(*dim, v);
-            }
-            for (dim, v) in from {
-                params = params.code_from(*dim, v);
-            }
-            for (dim, v) in to {
-                params = params.code_to(*dim, v);
+            let mut params = value_options!(filters!(params, filters), values);
+            if cli.no_explanation {
+                params = params.explanation(false);
             }
             if let Some(limit) = limit {
                 params = params.limit(*limit);
@@ -496,7 +642,12 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             Ok(Output {
                 command: "data",
                 params: data.parameter.clone(),
-                rows: Some(data.values().iter().map(|v| value_row(&data, v)).collect()),
+                rows: Some(
+                    data.values()
+                        .iter()
+                        .map(|v| Value::Object(value_row(stats.class_inf.as_ref(), v)))
+                        .collect(),
+                ),
                 data: None,
                 meta: json!({
                     "table": to_value(&stats.table_inf),
@@ -525,6 +676,9 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
             if let Some(v) = resource_id {
                 params = params.resource_id(v);
             }
+            if cli.no_explanation {
+                params = params.explanation(false);
+            }
             let response = api(cli)?.data_catalog(&params).await?;
             let list = response.data_catalog_list_inf;
             Ok(Output {
@@ -538,6 +692,103 @@ async fn run(cli: &Cli) -> Result<Output, CliError> {
                     "to": list.result_inf.to_number,
                     "next_key": list.result_inf.next_key,
                 }),
+            })
+        }
+        Command::Datas { requests, values } => {
+            let mut params = value_options!(StatsDatasParams::new(), values);
+            for request in requests {
+                params = params.request(datas_request(request)?);
+            }
+            if cli.no_explanation {
+                params = params.explanation(false);
+            }
+            let datas = api(cli)?.stats_datas(&params).await?;
+            let list = &datas.statistical_data_list;
+            let mut rows = Vec::new();
+            for no in (1..).take(params.requests().len()) {
+                for value in list.values(no) {
+                    let mut row = Map::new();
+                    row.insert("request_no".into(), no.into());
+                    row.extend(value_row(list.class_inf(no), value));
+                    rows.push(Value::Object(row));
+                }
+            }
+            Ok(Output {
+                command: "datas",
+                params: datas.parameter_list.clone(),
+                rows: Some(rows),
+                data: None,
+                meta: json!({
+                    "status": datas.result.status,
+                    "message": datas.result.error_msg,
+                    "total": list.result_inf.total_number,
+                    "tables": to_value(&list.table_inf_list.table_inf),
+                }),
+            })
+        }
+        Command::Datasets { collect_area } => {
+            let mut params = DatasetsParams::new();
+            if let Some(area) = collect_area {
+                params = params.collect_area((*area).into());
+            }
+            if cli.no_explanation {
+                params = params.explanation(false);
+            }
+            let response = api(cli)?.datasets(&params).await?;
+            let list = response.dataset_list_inf;
+            Ok(Output {
+                command: "datasets",
+                params: response.parameter,
+                rows: Some(list.dataset_inf.iter().map(to_value).collect()),
+                data: None,
+                meta: json!({"number": list.number}),
+            })
+        }
+        Command::Dataset { id } => {
+            let params = DatasetParams::new(id).explanation(!cli.no_explanation);
+            let response = api(cli)?.dataset(params).await?;
+            Ok(Output {
+                command: "dataset",
+                params: response.parameter,
+                rows: None,
+                data: Some(to_value(&response.dataset_inf)),
+                meta: json!({}),
+            })
+        }
+        Command::RegisterDataset {
+            stats_data_id,
+            id,
+            name,
+            public,
+            filters,
+        } => {
+            let mut params = filters!(PostDatasetParams::register(stats_data_id), filters);
+            if let Some(id) = id {
+                params = params.dataset_id(id);
+            }
+            if let Some(name) = name {
+                params = params.name(name);
+            }
+            let params = params.public(*public);
+            let post = api(cli)?.post_dataset(&params).await?;
+            Ok(Output {
+                command: "register-dataset",
+                params: Map::new(),
+                rows: None,
+                data: Some(to_value(&post.regist_inf)),
+                meta: json!({}),
+            })
+        }
+        Command::DeleteDataset { id } => {
+            let post = api(cli)?
+                .post_dataset(&PostDatasetParams::delete(id))
+                .await?;
+            Ok(Output {
+                command: "delete-dataset",
+                params: Map::new(),
+                rows: None,
+                data: Some(to_value(&post.regist_inf)),
+                meta: json!({}),
             })
         }
     }

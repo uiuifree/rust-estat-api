@@ -10,6 +10,10 @@ const STATS_DATA: &str = include_str!("fixtures/stats_data.json");
 const STATS_DATA_PAGE2: &str = include_str!("fixtures/stats_data_page2.json");
 const STATS_DATA_COUNT: &str = include_str!("fixtures/stats_data_count.json");
 const DATA_CATALOG: &str = include_str!("fixtures/data_catalog.json");
+const STATS_DATAS: &str = include_str!("fixtures/stats_datas.json");
+const DATASETS: &str = include_str!("fixtures/datasets.json");
+const DATASET: &str = include_str!("fixtures/dataset.json");
+const POST_DATASET: &str = include_str!("fixtures/post_dataset.xml");
 
 fn estat(server: Option<&MockServer>, args: &[&str]) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_estat"));
@@ -462,4 +466,213 @@ fn usage_errors() {
     assert!(help.status.success());
     assert!(String::from_utf8_lossy(&help.stdout).contains("e-Stat"));
     assert!(estat(None, &["--version"]).status.success());
+}
+
+#[test]
+fn no_explanation_everywhere() {
+    let server = MockServer::start();
+    for (path, body) in [
+        ("/getStatsList", STATS_LIST),
+        ("/getMetaInfo", META_INFO),
+        ("/getDataCatalog", DATA_CATALOG),
+        ("/getStatsData", STATS_DATA_PAGE2),
+        ("/refDataset", DATASET),
+    ] {
+        server.mock(|when, then| {
+            when.path(path).query_param("explanationGetFlg", "N");
+            then.status(200).body(body);
+        });
+    }
+    for args in [
+        &["list", "--no-explanation"][..],
+        &["meta", "0003448237", "--no-explanation"],
+        &["catalog", "--no-explanation"],
+        &["data", "0003448237", "--no-explanation"],
+        &["dataset", "CTCdemo-kokusei1", "--no-explanation"],
+    ] {
+        stdout(&estat(Some(&server), args));
+    }
+}
+
+#[test]
+fn data_value_options() {
+    let server = MockServer::start();
+    for (arg, code) in [("keep", "0"), ("zero", "1"), ("empty", "2"), ("na", "3")] {
+        let mock = server.mock(|when, then| {
+            when.path("/getStatsData")
+                .query_param("metaGetFlg", "N")
+                .query_param("annotationGetFlg", "N")
+                .query_param("replaceSpChar", code);
+            then.status(200).body(STATS_DATA_PAGE2);
+        });
+        let out = stdout(&estat(
+            Some(&server),
+            &[
+                "data",
+                "0003448237",
+                "--no-meta",
+                "--no-annotation",
+                "--replace-sp-char",
+                arg,
+            ],
+        ));
+        mock.assert();
+        // Without metadata there are no names
+        assert_eq!(out["rows"][0]["area"], "13000");
+        assert_eq!(out["rows"][0].get("area_name"), None);
+    }
+}
+
+#[test]
+fn datas() {
+    let server = MockServer::start();
+    let mock = server.mock(|when, then| {
+        when.method(POST)
+            .path("/getStatsDatas")
+            .x_www_form_urlencoded_tuple("appId", "test-id")
+            .x_www_form_urlencoded_tuple("annotationGetFlg", "N")
+            .x_www_form_urlencoded_tuple("explanationGetFlg", "N")
+            .x_www_form_urlencoded_tuple(
+                "statsDatasSpec",
+                r#"[{"statsDataId":"0003448237","cdArea":"13000"},{"dataSetId":"ds-1","cdTime":"1601"}]"#,
+            );
+        then.status(200).body(STATS_DATAS);
+    });
+    let out = stdout(&estat(
+        Some(&server),
+        &[
+            "datas",
+            "--request",
+            "statsDataId=0003448237&cdArea=13000",
+            "--request",
+            "dataSetId=ds-1&cdTime=1601",
+            "--no-annotation",
+            "--no-explanation",
+        ],
+    ));
+    mock.assert();
+    let rows = out["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 6);
+    assert_eq!(rows[0]["request_no"], 1);
+    assert_eq!(rows[0]["area_name"], "東京都");
+    assert_eq!(rows[5]["request_no"], 2);
+    assert_eq!(rows[5]["area_name"], "大阪府");
+    assert_eq!(rows[5]["number"], 8838.0);
+    assert_eq!(out["meta"]["status"], 0);
+    assert_eq!(out["meta"]["total"], 6);
+    assert_eq!(out["meta"]["tables"].as_array().unwrap().len(), 2);
+    assert_eq!(out["params"]["META_GET_FLG"], "Y");
+
+    // A request needs a table or dataset ID; nothing is sent
+    let (code, error) = failure(&estat(None, &["datas", "--request", "cdArea=13000"]));
+    assert_eq!(code, 2);
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("statsDataId or dataSetId")
+    );
+    let (code, _) = failure(&estat(None, &["datas"]));
+    assert_eq!(code, 2);
+}
+
+#[test]
+fn datasets() {
+    let server = MockServer::start();
+    server.mock(|when, then| {
+        when.path("/refDataset")
+            .query_param("collectArea", "1")
+            .query_param_exists("appId");
+        then.status(200).body(DATASETS);
+    });
+    server.mock(|when, then| {
+        when.path("/refDataset")
+            .query_param("dataSetId", "CTCdemo-kokusei1");
+        then.status(200).body(DATASET);
+    });
+    let out = stdout(&estat(
+        Some(&server),
+        &["datasets", "--collect-area", "nationwide"],
+    ));
+    assert_eq!(out["meta"]["number"], 20);
+    assert_eq!(out["rows"][0]["DATASET_NAME"], "test01010101");
+
+    let out = stdout(&estat(Some(&server), &["dataset", "CTCdemo-kokusei1"]));
+    assert_eq!(out["data"]["NARROWING_COND"]["LEVEL_AREA_COND"], "1-4");
+    assert_eq!(out["params"]["DATASET_ID"], "CTCdemo-kokusei1");
+
+    let server = MockServer::start();
+    let mock = server.mock(|when, then| {
+        when.path("/refDataset")
+            .query_param("explanationGetFlg", "N");
+        then.status(200).body(DATASETS);
+    });
+    let rows = lines(&estat(
+        Some(&server),
+        &["datasets", "--ndjson", "--no-explanation"],
+    ));
+    mock.assert();
+    assert_eq!(rows.len(), 2);
+}
+
+#[test]
+fn register_and_delete_dataset() {
+    let server = MockServer::start();
+    let register = server.mock(|when, then| {
+        when.method(POST)
+            .path("/postDataset")
+            .x_www_form_urlencoded_tuple("processMode", "E")
+            .x_www_form_urlencoded_tuple("statsDataId", "0003448237")
+            .x_www_form_urlencoded_tuple("dataSetId", "estat-api-test")
+            .x_www_form_urlencoded_tuple("dataSetName", "estat-api test")
+            .x_www_form_urlencoded_tuple("openSpecified", "1")
+            .x_www_form_urlencoded_tuple("cdArea", "13000");
+        then.status(200).body(POST_DATASET);
+    });
+    let generated = server.mock(|when, then| {
+        when.method(POST)
+            .path("/postDataset")
+            .x_www_form_urlencoded_tuple("processMode", "E")
+            .x_www_form_urlencoded_tuple("openSpecified", "0")
+            .x_www_form_urlencoded_tuple("lvArea", "1");
+        then.status(200).body(POST_DATASET);
+    });
+    let delete = server.mock(|when, then| {
+        when.method(POST)
+            .path("/postDataset")
+            .x_www_form_urlencoded_tuple("processMode", "D")
+            .x_www_form_urlencoded_tuple("dataSetId", "estat-api-test");
+        then.status(200)
+            .body(POST_DATASET.replace(r#"mode="add""#, r#"mode="delete""#));
+    });
+
+    let out = stdout(&estat(
+        Some(&server),
+        &[
+            "register-dataset",
+            "0003448237",
+            "--id",
+            "estat-api-test",
+            "--name",
+            "estat-api test",
+            "--public",
+            "--code",
+            "area=13000",
+        ],
+    ));
+    register.assert();
+    assert_eq!(out["command"], "register-dataset");
+    assert_eq!(out["data"]["mode"], "add");
+    assert_eq!(out["data"]["dataset_id"], "estat-api-test");
+    assert_eq!(out["data"]["total_number"], 570);
+
+    stdout(&estat(
+        Some(&server),
+        &["register-dataset", "0003448237", "--level", "area=1"],
+    ));
+    generated.assert();
+
+    let out = stdout(&estat(Some(&server), &["delete-dataset", "estat-api-test"]));
+    delete.assert();
+    assert_eq!(out["data"]["mode"], "delete");
 }

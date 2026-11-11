@@ -1,0 +1,370 @@
+{
+  "GET_STATS_DATAS": {
+    "RESULT": {
+      "STATUS": 0,
+      "ERROR_MSG": "正常に終了しました。",
+      "DATE": "2026-11-12T08:13:52.105+09:00"
+    },
+    "PARAMETER_LIST": {
+      "LANG": "J",
+      "DATA_FORMAT": "J",
+      "META_GET_FLG": "Y",
+      "PARAMETER": [
+        {
+          "@requestNo": "1",
+          "STATS_DATA_ID": "0003448237",
+          "NARROWING_COND": {
+            "CODE_CAT01_SELECT": "000",
+            "CODE_CAT02_SELECT": "01000",
+            "CODE_CAT03_SELECT": "001",
+            "CODE_AREA_SELECT": 13000
+          },
+          "START_POSITION": 1
+        },
+        {
+          "@requestNo": "2",
+          "STATS_DATA_ID": "0003448237",
+          "NARROWING_COND": {
+            "CODE_CAT01_SELECT": "000",
+            "CODE_CAT02_SELECT": "01000",
+            "CODE_CAT03_SELECT": "001",
+            "CODE_AREA_SELECT": 27000,
+            "CODE_TIME_SELECT": 1601
+          },
+          "START_POSITION": 1
+        }
+      ]
+    },
+    "STATISTICAL_DATA_LIST": {
+      "RESULT_INF": {
+        "TOTAL_NUMBER": 6
+      },
+      "TABLE_INF_LIST": {
+        "TABLE_INF": [
+          {
+            "@id": "0003448237",
+            "@requestNo": "1",
+            "STAT_NAME": {
+              "@code": "00200524",
+              "$": "人口推計"
+            },
+            "GOV_ORG": {
+              "@code": "00200",
+              "$": "総務省"
+            },
+            "STATISTICS_NAME": "人口推計 各年10月1日現在人口 令和２年国勢調査基準 統計表",
+            "TITLE": {
+              "@no": "010",
+              "$": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
+            },
+            "CYCLE": "年次",
+            "SURVEY_DATE": 0,
+            "OPEN_DATE": "2025-04-14",
+            "SMALL_AREA": 0,
+            "COLLECT_AREA": "該当なし",
+            "MAIN_CATEGORY": {
+              "@code": "02",
+              "$": "人口・世帯"
+            },
+            "SUB_CATEGORY": {
+              "@code": "01",
+              "$": "人口"
+            },
+            "OVERALL_TOTAL_NUMBER": 27360,
+            "UPDATED_DATE": "2025-10-03",
+            "STATISTICS_NAME_SPEC": {
+              "TABULATION_CATEGORY": "人口推計",
+              "TABULATION_SUB_CATEGORY1": "各年10月1日現在人口",
+              "TABULATION_SUB_CATEGORY2": "令和２年国勢調査基準",
+              "TABULATION_SUB_CATEGORY3": "統計表"
+            },
+            "DESCRIPTION": "",
+            "TITLE_SPEC": {
+              "TABLE_NAME": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
+            }
+          },
+          {
+            "@id": "0003448237",
+            "@requestNo": "2",
+            "STAT_NAME": {
+              "@code": "00200524",
+              "$": "人口推計"
+            },
+            "GOV_ORG": {
+              "@code": "00200",
+              "$": "総務省"
+            },
+            "STATISTICS_NAME": "人口推計 各年10月1日現在人口 令和２年国勢調査基準 統計表",
+            "TITLE": {
+              "@no": "010",
+              "$": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
+            },
+            "CYCLE": "年次",
+            "SURVEY_DATE": 0,
+            "OPEN_DATE": "2025-04-14",
+            "SMALL_AREA": 0,
+            "COLLECT_AREA": "該当なし",
+            "MAIN_CATEGORY": {
+              "@code": "02",
+              "$": "人口・世帯"
+            },
+            "SUB_CATEGORY": {
+              "@code": "01",
+              "$": "人口"
+            },
+            "OVERALL_TOTAL_NUMBER": 27360,
+            "UPDATED_DATE": "2025-10-03",
+            "STATISTICS_NAME_SPEC": {
+              "TABULATION_CATEGORY": "人口推計",
+              "TABULATION_SUB_CATEGORY1": "各年10月1日現在人口",
+              "TABULATION_SUB_CATEGORY2": "令和２年国勢調査基準",
+              "TABULATION_SUB_CATEGORY3": "統計表"
+            },
+            "DESCRIPTION": "",
+            "TITLE_SPEC": {
+              "TABLE_NAME": "都道府県，年齢（5歳階級），男女別人口－総人口，日本人人口"
+            }
+          }
+        ]
+      },
+      "CLASS_INF_LIST": {
+        "CLASS_INF": [
+          {
+            "@requestNo": "1",
+            "CLASS_OBJ": [
+              {
+                "@id": "tab",
+                "@name": "表章項目",
+                "CLASS": {
+                  "@code": "001",
+                  "@name": "人口",
+                  "@level": "",
+                  "@unit": "千人"
+                }
+              },
+              {
+                "@id": "cat01",
+                "@name": "男女別",
+                "CLASS": {
+                  "@code": "000",
+                  "@name": "男女計",
+                  "@level": "1"
+                }
+              },
+              {
+                "@id": "cat02",
+                "@name": "年齢5歳階級",
+                "CLASS": {
+                  "@code": "01000",
+                  "@name": "総数",
+                  "@level": "1"
+                }
+              },
+              {
+                "@id": "cat03",
+                "@name": "人口",
+                "CLASS": {
+                  "@code": "001",
+                  "@name": "総人口",
+                  "@level": "1"
+                }
+              },
+              {
+                "@id": "area",
+                "@name": "全国・都道府県",
+                "CLASS": {
+                  "@code": "13000",
+                  "@name": "東京都",
+                  "@level": "2"
+                }
+              },
+              {
+                "@id": "time",
+                "@name": "時間軸（年月日現在）",
+                "CLASS": [
+                  {
+                    "@code": "1601",
+                    "@name": "2020年10月1日現在",
+                    "@level": "1"
+                  },
+                  {
+                    "@code": "1301",
+                    "@name": "2021年10月1日現在",
+                    "@level": "1"
+                  },
+                  {
+                    "@code": "1701",
+                    "@name": "2022年10月1日現在",
+                    "@level": "1"
+                  },
+                  {
+                    "@code": "1801",
+                    "@name": "2023年10月1日現在",
+                    "@level": "1"
+                  },
+                  {
+                    "@code": "1901",
+                    "@name": "2024年10月1日現在",
+                    "@level": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "@requestNo": "2",
+            "CLASS_OBJ": [
+              {
+                "@id": "tab",
+                "@name": "表章項目",
+                "CLASS": {
+                  "@code": "001",
+                  "@name": "人口",
+                  "@level": "",
+                  "@unit": "千人"
+                }
+              },
+              {
+                "@id": "cat01",
+                "@name": "男女別",
+                "CLASS": {
+                  "@code": "000",
+                  "@name": "男女計",
+                  "@level": "1"
+                }
+              },
+              {
+                "@id": "cat02",
+                "@name": "年齢5歳階級",
+                "CLASS": {
+                  "@code": "01000",
+                  "@name": "総数",
+                  "@level": "1"
+                }
+              },
+              {
+                "@id": "cat03",
+                "@name": "人口",
+                "CLASS": {
+                  "@code": "001",
+                  "@name": "総人口",
+                  "@level": "1"
+                }
+              },
+              {
+                "@id": "area",
+                "@name": "全国・都道府県",
+                "CLASS": {
+                  "@code": "27000",
+                  "@name": "大阪府",
+                  "@level": "2"
+                }
+              },
+              {
+                "@id": "time",
+                "@name": "時間軸（年月日現在）",
+                "CLASS": {
+                  "@code": "1601",
+                  "@name": "2020年10月1日現在",
+                  "@level": "1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "DATA_INF_LIST": {
+        "DATA_INF": [
+          {
+            "@requestNo": "1",
+            "NOTE": [
+              {
+                "@char": "***",
+                "$": "該当数値がないもの"
+              },
+              {
+                "@char": "-",
+                "$": "該当数値がないもの　"
+              }
+            ],
+            "VALUE": [
+              {
+                "@tab": "001",
+                "@cat01": "000",
+                "@cat02": "01000",
+                "@cat03": "001",
+                "@area": "13000",
+                "@time": "1601",
+                "@unit": "千人",
+                "$": "14048"
+              },
+              {
+                "@tab": "001",
+                "@cat01": "000",
+                "@cat02": "01000",
+                "@cat03": "001",
+                "@area": "13000",
+                "@time": "1301",
+                "@unit": "千人",
+                "$": "14010"
+              },
+              {
+                "@tab": "001",
+                "@cat01": "000",
+                "@cat02": "01000",
+                "@cat03": "001",
+                "@area": "13000",
+                "@time": "1701",
+                "@unit": "千人",
+                "$": "14038"
+              },
+              {
+                "@tab": "001",
+                "@cat01": "000",
+                "@cat02": "01000",
+                "@cat03": "001",
+                "@area": "13000",
+                "@time": "1801",
+                "@unit": "千人",
+                "$": "14086"
+              },
+              {
+                "@tab": "001",
+                "@cat01": "000",
+                "@cat02": "01000",
+                "@cat03": "001",
+                "@area": "13000",
+                "@time": "1901",
+                "@unit": "千人",
+                "$": "14178"
+              }
+            ]
+          },
+          {
+            "@requestNo": "2",
+            "NOTE": [
+              {
+                "@char": "***",
+                "$": "該当数値がないもの"
+              },
+              {
+                "@char": "-",
+                "$": "該当数値がないもの　"
+              }
+            ],
+            "VALUE": {
+              "@tab": "001",
+              "@cat01": "000",
+              "@cat02": "01000",
+              "@cat03": "001",
+              "@area": "27000",
+              "@time": "1601",
+              "@unit": "千人",
+              "$": "8838"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

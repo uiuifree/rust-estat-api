@@ -28,12 +28,42 @@ impl Query {
 macro_rules! query_accessor {
     ($($ty:ty),*) => {$(
         impl $ty {
-            /// Query parameters in the order they were set, without `appId` and `lang`.
+            /// Parameters in the order they were set, without `appId` and `lang`.
             pub fn query(&self) -> &[(String, String)] {
                 &self.query.0
             }
         }
     )*};
+}
+
+/// Filter setters shared by the builders that take narrowing conditions.
+macro_rules! filter_methods {
+    () => {
+        /// Hierarchy level (`lvTab`, `lvArea`, ...): `X`, `X-X`, `-X` or `X-`.
+        pub fn level(mut self, dim: Dimension, level: impl Into<String>) -> Self {
+            self.query.set(format!("lv{}", dim.param()), level);
+            self
+        }
+
+        /// Item codes (`cdTab`, `cdArea`, ...), up to 100 separated by commas.
+        /// `min` and `max` stand for the smallest and largest code.
+        pub fn code(mut self, dim: Dimension, codes: impl Into<String>) -> Self {
+            self.query.set(format!("cd{}", dim.param()), codes);
+            self
+        }
+
+        /// Codes from this one on (`cdTabFrom`, ...).
+        pub fn code_from(mut self, dim: Dimension, code: impl Into<String>) -> Self {
+            self.query.set(format!("cd{}From", dim.param()), code);
+            self
+        }
+
+        /// Codes up to this one (`cdTabTo`, ...).
+        pub fn code_to(mut self, dim: Dimension, code: impl Into<String>) -> Self {
+            self.query.set(format!("cd{}To", dim.param()), code);
+            self
+        }
+    };
 }
 
 /// Area level of the tables to search (`collectArea`, 集計地域区分).
@@ -425,30 +455,7 @@ impl StatsDataParams {
         StatsDataParams { query }
     }
 
-    /// Hierarchy level (`lvTab`, `lvArea`, ...): `X`, `X-X`, `-X` or `X-`.
-    pub fn level(mut self, dim: Dimension, level: impl Into<String>) -> Self {
-        self.query.set(format!("lv{}", dim.param()), level);
-        self
-    }
-
-    /// Item codes (`cdTab`, `cdArea`, ...), up to 100 separated by commas.
-    /// `min` and `max` stand for the smallest and largest code.
-    pub fn code(mut self, dim: Dimension, codes: impl Into<String>) -> Self {
-        self.query.set(format!("cd{}", dim.param()), codes);
-        self
-    }
-
-    /// Codes from this one on (`cdTabFrom`, ...).
-    pub fn code_from(mut self, dim: Dimension, code: impl Into<String>) -> Self {
-        self.query.set(format!("cd{}From", dim.param()), code);
-        self
-    }
-
-    /// Codes up to this one (`cdTabTo`, ...).
-    pub fn code_to(mut self, dim: Dimension, code: impl Into<String>) -> Self {
-        self.query.set(format!("cd{}To", dim.param()), code);
-        self
-    }
+    filter_methods!();
 
     /// First row to return, from 1 (`startPosition`). Pass the previous `NEXT_KEY`.
     pub fn start_position(mut self, position: u64) -> Self {
@@ -599,11 +606,274 @@ impl DataCatalogParams {
     }
 }
 
+/// One request of [`StatsDatasParams`]: a table or dataset with its filters.
+///
+/// ```
+/// use estat_api::{Dimension, StatsDatasRequest};
+///
+/// let tokyo = StatsDatasRequest::table("0003448237").code(Dimension::Area, "13000");
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StatsDatasRequest {
+    query: Query,
+}
+
+impl StatsDatasRequest {
+    /// Values of a statistical table (`statsDataId`).
+    pub fn table(stats_data_id: impl Into<String>) -> Self {
+        let mut query = Query::default();
+        query.set("statsDataId", stats_data_id);
+        StatsDatasRequest { query }
+    }
+
+    /// Values of a registered dataset (`dataSetId`).
+    pub fn dataset(data_set_id: impl Into<String>) -> Self {
+        let mut query = Query::default();
+        query.set("dataSetId", data_set_id);
+        StatsDatasRequest { query }
+    }
+
+    filter_methods!();
+
+    /// First row to return, from 1 (`startPosition`).
+    pub fn start_position(mut self, position: u64) -> Self {
+        self.query.set("startPosition", position.to_string());
+        self
+    }
+
+    /// Maximum number of rows (`limit`).
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.query.set("limit", limit.to_string());
+        self
+    }
+
+    /// Any other parameter of `statsDatasSpec`, as e-Stat names it.
+    pub fn param(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.query.set(name, value);
+        self
+    }
+}
+
+/// Parameters of [`EstatApi::stats_datas`](crate::EstatApi::stats_datas)
+/// (`getStatsDatas`, 統計データ一括取得).
+///
+/// Requests are numbered from 1 in the order they are added; the response
+/// refers to them by that number. All requests together may return at most
+/// 100,000 values.
+///
+/// ```
+/// use estat_api::{Dimension, StatsDatasParams, StatsDatasRequest};
+///
+/// let params = StatsDatasParams::new()
+///     .request(StatsDatasRequest::table("0003448237").code(Dimension::Area, "13000"))
+///     .request(StatsDatasRequest::table("0003448237").code(Dimension::Area, "27000"))
+///     .meta(false);
+/// assert_eq!(
+///     params.spec(),
+///     r#"[{"statsDataId":"0003448237","cdArea":"13000"},{"statsDataId":"0003448237","cdArea":"27000"}]"#
+/// );
+/// ```
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct StatsDatasParams {
+    query: Query,
+    requests: Vec<StatsDatasRequest>,
+}
+
+impl StatsDatasParams {
+    /// No requests yet.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a request.
+    pub fn request(mut self, request: StatsDatasRequest) -> Self {
+        self.requests.push(request);
+        self
+    }
+
+    /// The requests, in order.
+    pub fn requests(&self) -> &[StatsDatasRequest] {
+        &self.requests
+    }
+
+    /// Include metadata (`metaGetFlg`, default `true`).
+    pub fn meta(mut self, on: bool) -> Self {
+        self.query.flag("metaGetFlg", on);
+        self
+    }
+
+    /// Include explanations (`explanationGetFlg`, default `true`).
+    pub fn explanation(mut self, on: bool) -> Self {
+        self.query.flag("explanationGetFlg", on);
+        self
+    }
+
+    /// Include annotations of values (`annotationGetFlg`, default `true`).
+    pub fn annotation(mut self, on: bool) -> Self {
+        self.query.flag("annotationGetFlg", on);
+        self
+    }
+
+    /// Replace special characters in values (`replaceSpChar`).
+    pub fn replace_sp_char(mut self, replace: ReplaceSpChar) -> Self {
+        self.query.set("replaceSpChar", replace.code());
+        self
+    }
+
+    /// The `statsDatasSpec` parameter: the requests as a JSON array.
+    pub fn spec(&self) -> String {
+        let quote = |s: &str| serde_json::to_string(s).expect("strings serialize to JSON");
+        let requests: Vec<String> = self
+            .requests
+            .iter()
+            .map(|r| {
+                let fields: Vec<String> = r
+                    .query
+                    .0
+                    .iter()
+                    .map(|(n, v)| format!("{}:{}", quote(n), quote(v)))
+                    .collect();
+                format!("{{{}}}", fields.join(","))
+            })
+            .collect();
+        format!("[{}]", requests.join(","))
+    }
+
+    /// The form sent to e-Stat: the flags and `statsDatasSpec`.
+    pub(crate) fn form(&self) -> Vec<(String, String)> {
+        let mut form = self.query.0.clone();
+        form.push(("statsDatasSpec".into(), self.spec()));
+        form
+    }
+}
+
+/// Parameters of [`EstatApi::datasets`](crate::EstatApi::datasets)
+/// (`refDataset` without an ID, データセット参照).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DatasetsParams {
+    query: Query,
+}
+
+impl DatasetsParams {
+    /// No conditions.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Area level (`collectArea`).
+    pub fn collect_area(mut self, area: CollectArea) -> Self {
+        self.query.set("collectArea", area.code());
+        self
+    }
+
+    /// Include explanations (`explanationGetFlg`, default `true`).
+    pub fn explanation(mut self, on: bool) -> Self {
+        self.query.flag("explanationGetFlg", on);
+        self
+    }
+}
+
+/// Parameters of [`EstatApi::dataset`](crate::EstatApi::dataset)
+/// (`refDataset` with an ID, データセット参照).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DatasetParams {
+    query: Query,
+}
+
+impl DatasetParams {
+    /// The dataset with this ID (`dataSetId`).
+    pub fn new(data_set_id: impl Into<String>) -> Self {
+        let mut query = Query::default();
+        query.set("dataSetId", data_set_id);
+        DatasetParams { query }
+    }
+
+    /// Include explanations (`explanationGetFlg`, default `true`).
+    pub fn explanation(mut self, on: bool) -> Self {
+        self.query.flag("explanationGetFlg", on);
+        self
+    }
+}
+
+impl<T: Into<String>> From<T> for DatasetParams {
+    fn from(data_set_id: T) -> Self {
+        DatasetParams::new(data_set_id)
+    }
+}
+
+/// Parameters of [`EstatApi::post_dataset`](crate::EstatApi::post_dataset)
+/// (`postDataset`, データセット登録).
+///
+/// A dataset stores a table ID and filters under your application ID, so
+/// that [`StatsDataParams::dataset`] can use them later.
+///
+/// ```
+/// use estat_api::{Dimension, PostDatasetParams};
+///
+/// // Register, or update the dataset with this ID
+/// let register = PostDatasetParams::register("0003448237")
+///     .dataset_id("tokyo-population")
+///     .name("東京都の人口")
+///     .code(Dimension::Area, "13000");
+/// // Delete it
+/// let delete = PostDatasetParams::delete("tokyo-population");
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PostDatasetParams {
+    query: Query,
+}
+
+impl PostDatasetParams {
+    /// Registers a dataset for a table (`processMode=E`). It needs at least
+    /// one filter. With [`dataset_id`](Self::dataset_id) of an existing
+    /// dataset, that dataset is updated.
+    pub fn register(stats_data_id: impl Into<String>) -> Self {
+        let mut query = Query::default();
+        query.set("processMode", "E");
+        query.set("statsDataId", stats_data_id);
+        PostDatasetParams { query }
+    }
+
+    /// Deletes a dataset (`processMode=D`).
+    pub fn delete(data_set_id: impl Into<String>) -> Self {
+        let mut query = Query::default();
+        query.set("processMode", "D");
+        query.set("dataSetId", data_set_id);
+        PostDatasetParams { query }
+    }
+
+    /// Dataset ID (`dataSetId`): up to 30 characters of letters, digits and
+    /// `-_.@`. Without it e-Stat makes one from the survey code and the time.
+    pub fn dataset_id(mut self, value: impl Into<String>) -> Self {
+        self.query.set("dataSetId", value);
+        self
+    }
+
+    /// Name or description (`dataSetName`), up to 256 characters.
+    pub fn name(mut self, value: impl Into<String>) -> Self {
+        self.query.set("dataSetName", value);
+        self
+    }
+
+    /// Let other users see and use the dataset (`openSpecified`, default `false`).
+    pub fn public(mut self, on: bool) -> Self {
+        self.query.set("openSpecified", if on { "1" } else { "0" });
+        self
+    }
+
+    filter_methods!();
+}
+
 query_accessor!(
     StatsListParams,
     MetaInfoParams,
     StatsDataParams,
-    DataCatalogParams
+    DataCatalogParams,
+    StatsDatasRequest,
+    StatsDatasParams,
+    DatasetsParams,
+    DatasetParams,
+    PostDatasetParams
 );
 
 #[cfg(test)]
@@ -759,6 +1029,91 @@ mod tests {
                 ("startPosition", "101"),
                 ("limit", "100"),
                 ("updatedDate", "2024"),
+            ]
+        );
+    }
+
+    #[test]
+    fn stats_datas_params() {
+        let request = StatsDatasRequest::dataset("ds")
+            .level(Dimension::Tab, "1")
+            .code(Dimension::Area, "13000")
+            .code_from(Dimension::Time, "1601")
+            .code_to(Dimension::Time, "max")
+            .start_position(2)
+            .limit(10)
+            .param("cdCat01", "000");
+        assert_eq!(request.query().len(), 8);
+        let params = StatsDatasParams::new()
+            .request(request)
+            .request(StatsDatasRequest::table("0003448237"))
+            .meta(false)
+            .explanation(true)
+            .annotation(false)
+            .replace_sp_char(ReplaceSpChar::Empty);
+        assert_eq!(params.requests().len(), 2);
+        assert_eq!(
+            pairs(params.query()),
+            [
+                ("metaGetFlg", "N"),
+                ("explanationGetFlg", "Y"),
+                ("annotationGetFlg", "N"),
+                ("replaceSpChar", "2"),
+            ]
+        );
+        assert_eq!(
+            params.spec(),
+            r#"[{"dataSetId":"ds","lvTab":"1","cdArea":"13000","cdTimeFrom":"1601","cdTimeTo":"max","startPosition":"2","limit":"10","cdCat01":"000"},{"statsDataId":"0003448237"}]"#
+        );
+        let form = params.form();
+        assert_eq!(form.len(), 5);
+        assert_eq!(form[4], ("statsDatasSpec".into(), params.spec()));
+        assert_eq!(StatsDatasParams::new().spec(), "[]");
+    }
+
+    #[test]
+    fn dataset_params() {
+        let params = DatasetsParams::new()
+            .collect_area(CollectArea::Nationwide)
+            .explanation(false);
+        assert_eq!(
+            pairs(params.query()),
+            [("collectArea", "1"), ("explanationGetFlg", "N")]
+        );
+        let params: DatasetParams = "ds".into();
+        assert_eq!(
+            pairs(params.explanation(true).query()),
+            [("dataSetId", "ds"), ("explanationGetFlg", "Y")]
+        );
+
+        let params = PostDatasetParams::register("0003448237")
+            .dataset_id("my-set")
+            .name("名前")
+            .public(true)
+            .level(Dimension::Area, "2")
+            .code(Dimension::Cat01, "000")
+            .code_from(Dimension::Time, "1601")
+            .code_to(Dimension::Time, "1901");
+        assert_eq!(
+            pairs(params.query()),
+            [
+                ("processMode", "E"),
+                ("statsDataId", "0003448237"),
+                ("dataSetId", "my-set"),
+                ("dataSetName", "名前"),
+                ("openSpecified", "1"),
+                ("lvArea", "2"),
+                ("cdCat01", "000"),
+                ("cdTimeFrom", "1601"),
+                ("cdTimeTo", "1901"),
+            ]
+        );
+        assert_eq!(
+            pairs(PostDatasetParams::delete("my-set").public(false).query()),
+            [
+                ("processMode", "D"),
+                ("dataSetId", "my-set"),
+                ("openSpecified", "0")
             ]
         );
     }

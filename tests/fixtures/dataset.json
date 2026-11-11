@@ -1,0 +1,56 @@
+{
+  "REF_DATASET": {
+    "RESULT": {
+      "STATUS": 0,
+      "ERROR_MSG": "正常に終了しました。",
+      "DATE": "2026-11-12T08:14:06.875+09:00"
+    },
+    "PARAMETER": {
+      "LANG": "J",
+      "DATASET_ID": "CTCdemo-kokusei1",
+      "DATA_FORMAT": "J"
+    },
+    "DATASET_INF": {
+      "@id": "CTCdemo-kokusei1",
+      "NARROWING_COND": {
+        "CODE_CAT01_SELECT": "00710",
+        "LEVEL_AREA_COND": "1-4"
+      },
+      "PUBLIC_STATE": "YES",
+      "RESULT_INF": {
+        "TOTAL_NUMBER": 14382
+      },
+      "TABLE_INF": {
+        "@id": "0003038586",
+        "STAT_NAME": {
+          "@code": "00200521",
+          "$": "国勢調査"
+        },
+        "GOV_ORG": {
+          "@code": "00200",
+          "$": "総務省"
+        },
+        "STATISTICS_NAME": "平成22年国勢調査 人口等基本集計（男女・年齢・配偶関係，世帯の構成，住居の状態など）",
+        "TITLE": {
+          "@no": "00100",
+          "$": "人口，人口増減，面積及び人口密度 全国，市部・郡部，都道府県，市部・郡部，支庁，郡計，市区町村・旧市町村，全域・人口集中地区"
+        },
+        "CYCLE": "-",
+        "SURVEY_DATE": 201010,
+        "OPEN_DATE": "2011-10-26",
+        "SMALL_AREA": 0,
+        "COLLECT_AREA": "該当なし",
+        "MAIN_CATEGORY": {
+          "@code": "02",
+          "$": "人口・世帯"
+        },
+        "SUB_CATEGORY": {
+          "@code": "01",
+          "$": "人口"
+        },
+        "OVERALL_TOTAL_NUMBER": 0,
+        "UPDATED_DATE": "2026-09-29"
+      }
+    }
+  }
+}

@@ -9,7 +9,8 @@
 Unofficial async Rust client and command line tool for the
 [e-Stat API](https://www.e-stat.go.jp/api/) v3.0, the API of e-Stat, the portal site for official
 statistics of Japan. It searches statistical tables, reads their dimensions, downloads the values
-and searches the catalog of statistical files.
+(one table at a time or several in one request), searches the catalog of statistical files and
+manages datasets.
 
 - Census (国勢調査), population estimates, labour force survey, economic census and the other
   surveys in the e-Stat database
@@ -25,7 +26,8 @@ Center.
 
 政府統計の総合窓口（e-Stat）の API（Version 3.0、JSON 形式）を Rust から使うための非公式クライアントと
 CLI です。統計表情報取得（`getStatsList`）、メタ情報取得（`getMetaInfo`）、統計データ取得
-（`getStatsData`）、データカタログ情報取得（`getDataCatalog`）に対応しています。統計データは
+（`getStatsData`）、統計データ一括取得（`getStatsDatas`）、データカタログ情報取得（`getDataCatalog`）、
+データセット登録（`postDataset`）とデータセット参照（`refDataset`）の API v3.0 の機能すべてに対応しています。統計データは
 `NEXT_KEY` をたどって全件を取得するヘルパーもあります。e-Stat の JSON は要素が 1 つだと配列ではなく
 オブジェクトになるので、どちらで来ても `Vec` として受け取れるようにしています。アプリケーション ID は
 同梱していないので、e-Stat で発行したものを渡してください。
@@ -110,6 +112,60 @@ Values are strings, because e-Stat puts characters such as `-` or `X` in place o
 `DataValue::as_f64()` gives the number and `DataInf::note` explains the characters.
 `StatsData::label(value, dim)` looks up the item name of a value in the metadata.
 
+### Several tables in one request
+
+`stats_datas` sends `getStatsDatas`: one POST with several requests, each a table or dataset with
+its own filters. The requests together may return at most 100,000 values, and there is no paging.
+The response refers to each request by its number, from 1 in the order added.
+
+```rust,no_run
+use estat_api::{Dimension, EstatApi, StatsDatasParams, StatsDatasRequest};
+
+# async fn run(api: EstatApi) -> Result<(), estat_api::EstatError> {
+let params = StatsDatasParams::new()
+    .request(StatsDatasRequest::table("0003448237").code(Dimension::Area, "13000"))
+    .request(StatsDatasRequest::table("0003448237").code(Dimension::Area, "27000"));
+let datas = api.stats_datas(&params).await?;
+let list = &datas.statistical_data_list;
+for no in [1, 2] {
+    let classes = list.class_inf(no);
+    for value in list.values(no) {
+        let area = classes.and_then(|c| c.label(value, Dimension::Area));
+        println!("{no} {area:?} {}", value.value);
+    }
+}
+# Ok(())
+# }
+```
+
+Status `2` means some requests matched nothing; the message lists their numbers. Status `400` (too
+many values) and `401` (one request failed, with its error in the message) are errors.
+
+### Datasets
+
+A dataset stores a table ID and filters under your application ID. `post_dataset` registers,
+updates or deletes one, `datasets` lists the datasets you can use (yours and those others made
+public), `dataset(id)` returns one with its filters, and `StatsDataParams::dataset(id)` reads its
+values.
+
+```rust,no_run
+use estat_api::{Dimension, EstatApi, PostDatasetParams, StatsDataParams};
+
+# async fn run(api: EstatApi) -> Result<(), estat_api::EstatError> {
+let register = PostDatasetParams::register("0003448237")
+    .dataset_id("tokyo-population")
+    .name("東京都の人口")
+    .code(Dimension::Area, "13000");
+api.post_dataset(&register).await?; // registering the same ID again updates it
+let data = api.stats_data(&StatsDataParams::dataset("tokyo-population")).await?;
+api.post_dataset(&PostDatasetParams::delete("tokyo-population")).await?;
+# Ok(())
+# }
+```
+
+`postDataset` changes data on e-Stat. e-Stat answers it in XML only, so the crate reads the few
+elements of that response itself, without an XML dependency.
+
 ### Data catalog
 
 `data_catalog` searches the files (Excel, CSV, PDF, XML) and database tables on e-Stat. Each
@@ -161,6 +217,10 @@ match api.meta_info("0003448237").await {
 | `101` to `105` | missing or invalid parameter |
 | `200` to `299` | server error |
 | `300` | no table or dataset with that ID |
+| `301` | the dataset belongs to another application ID |
+| `302` | the dataset's filters select nothing |
+| `400` | bulk request selects more than 100,000 values |
+| `401` | one request of a bulk request failed |
 
 The application ID is sent in the URL. The crate removes the URL from connection errors and hides
 the ID in `Debug` output.
@@ -178,14 +238,26 @@ estat list --stats-code 00200 --surveys
 estat meta 0003448237
 estat data 0003448237 --code area=13000 --from time=2015000000 --all --ndjson
 estat catalog --stats-code 00200521 --data-type csv
+estat datas --request "statsDataId=0003448237&cdArea=13000" --request "statsDataId=0003448237&cdArea=27000"
+estat datasets
+estat dataset CTCdemo-kokusei1
+estat register-dataset 0003448237 --id tokyo-population --name 東京都の人口 --code area=13000
+estat delete-dataset tokyo-population
 ```
 
 `data` prints one row per value with the codes, the item names (`area_name`, ...), `value` as sent
 and `number` (`null` for special characters). Filters are `--code DIM=CODES`, `--level DIM=LEVEL`,
 `--from DIM=CODE` and `--to DIM=CODE`, where `DIM` is `tab`, `time`, `area` or `cat01` to `cat15`.
 `--all` follows `NEXT_KEY`; without it, `meta.next_key` is the value to pass to `--start`.
-`--count-only` prints just `meta.total`, to check the size before `--all`. `--ndjson` prints one
-row per line, and `--timeout SECS` changes the 5 minute timeout.
+`--count-only` prints just `meta.total`, to check the size before `--all`. `--no-meta`,
+`--no-annotation` and `--replace-sp-char keep|zero|empty|na` set the other options of the values.
+
+`datas` takes each request as e-Stat parameters in query string form and prints the values of all
+requests as rows with `request_no`. `register-dataset` takes the same filters as `data`, plus
+`--id`, `--name` and `--public`.
+
+On every command, `--no-explanation` leaves out explanations, `--ndjson` prints one row per line,
+and `--timeout SECS` changes the 5 minute timeout.
 
 Results are `{"ok": true, "command", "params", "rows" or "data", "meta"}`, where `params` is the
 `PARAMETER` element e-Stat echoes back. Errors are printed to stderr as `{"ok": false, "error": {"kind", "message", "status"}}`.

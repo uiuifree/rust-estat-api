@@ -1,4 +1,4 @@
-//! Responses of `getStatsList`, `getMetaInfo` and `getStatsData`.
+//! Responses of `getStatsList`, `getMetaInfo`, `getStatsData` and `getStatsDatas`.
 //!
 //! Field names follow the e-Stat tags in snake case (`TABLE_INF` is
 //! `table_inf`, `@parentCode` is `parent_code`). Elements that e-Stat sends
@@ -148,6 +148,14 @@ pub struct TableInf {
     /// `meta_info` and `stats_data`.
     #[serde(rename = "@id")]
     pub id: String,
+    /// Request number (`@requestNo`), only in [`StatsDatas`] responses.
+    #[serde(
+        rename = "@requestNo",
+        default,
+        deserialize_with = "de::opt_number",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub request_no: Option<u32>,
     /// Survey name (政府統計名) with the 8-digit government statistics code.
     #[serde(
         default,
@@ -530,6 +538,14 @@ pub struct MetadataInf {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub struct ClassInf {
+    /// Request number (`@requestNo`), only in [`StatsDatas`] responses.
+    #[serde(
+        rename = "@requestNo",
+        default,
+        deserialize_with = "de::opt_number",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub request_no: Option<u32>,
     /// One entry per dimension (`tab`, `cat01`, `area`, `time`, ...).
     #[serde(default, deserialize_with = "de::one_or_many")]
     pub class_obj: Vec<ClassObj>,
@@ -542,6 +558,13 @@ impl ClassInf {
     /// The entry for a dimension, if the table has it.
     pub fn get(&self, dim: Dimension) -> Option<&ClassObj> {
         self.class_obj.iter().find(|obj| obj.id == dim.id())
+    }
+
+    /// Name of the item a value has on a dimension. `None` when the value
+    /// has no code on that dimension or the code is not listed.
+    pub fn label(&self, value: &DataValue, dim: Dimension) -> Option<&str> {
+        let code = value.code(dim)?;
+        self.get(dim)?.find(code).map(|c| c.name.as_str())
     }
 }
 
@@ -663,9 +686,7 @@ impl StatsData {
     /// [`class_inf`](StatisticalData::class_inf). `None` when the metadata
     /// was not requested or the value has no code on that dimension.
     pub fn label(&self, value: &DataValue, dim: Dimension) -> Option<&str> {
-        let code = value.code(dim)?;
-        let class = self.statistical_data.class_inf.as_ref()?.get(dim)?;
-        class.find(code).map(|c| c.name.as_str())
+        self.statistical_data.class_inf.as_ref()?.label(value, dim)
     }
 }
 
@@ -696,11 +717,124 @@ pub struct StatisticalData {
     pub extra: Map<String, Value>,
 }
 
+/// Response of [`EstatApi::stats_datas`](crate::EstatApi::stats_datas) (`GET_STATS_DATAS`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
+pub struct StatsDatas {
+    /// Outcome of the request. Status `2` means some requests matched nothing;
+    /// the message lists their numbers.
+    pub result: ApiResult,
+    /// Parameters as e-Stat received them, with one `PARAMETER` per request.
+    #[serde(default)]
+    pub parameter_list: Map<String, Value>,
+    /// Tables, metadata and values of all requests.
+    #[serde(default, deserialize_with = "de::object_or_default")]
+    pub statistical_data_list: StatisticalDataList,
+    /// Fields this crate does not know yet, kept as received.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// `STATISTICAL_DATA_LIST` element. Each entry carries the number of its
+/// request in `request_no`; use [`table`](Self::table),
+/// [`class_inf`](Self::class_inf) and [`values`](Self::values) to pick one.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
+pub struct StatisticalDataList {
+    /// Number of values of all requests together, in `total_number`.
+    #[serde(default, deserialize_with = "de::object_or_default")]
+    pub result_inf: ResultInf,
+    /// Tables, one per request.
+    #[serde(default, deserialize_with = "de::object_or_default")]
+    pub table_inf_list: TableInfList,
+    /// Metadata, one per request. Empty with
+    /// [`meta(false)`](crate::StatsDatasParams::meta).
+    #[serde(default, deserialize_with = "de::object_or_default")]
+    pub class_inf_list: ClassInfList,
+    /// Values, one per request that matched something.
+    #[serde(default, deserialize_with = "de::object_or_default")]
+    pub data_inf_list: DataInfList,
+    /// Fields this crate does not know yet, kept as received.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl StatisticalDataList {
+    /// Table of a request (numbered from 1).
+    pub fn table(&self, request_no: u32) -> Option<&TableInf> {
+        let tables = &self.table_inf_list.table_inf;
+        tables.iter().find(|t| t.request_no == Some(request_no))
+    }
+
+    /// Metadata of a request.
+    pub fn class_inf(&self, request_no: u32) -> Option<&ClassInf> {
+        let classes = &self.class_inf_list.class_inf;
+        classes.iter().find(|c| c.request_no == Some(request_no))
+    }
+
+    /// Values of a request. Empty when it matched nothing.
+    pub fn values(&self, request_no: u32) -> &[DataValue] {
+        let data = &self.data_inf_list.data_inf;
+        data.iter()
+            .find(|d| d.request_no == Some(request_no))
+            .map_or(&[], |d| d.value.as_slice())
+    }
+}
+
+/// `TABLE_INF_LIST` element.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
+pub struct TableInfList {
+    /// Tables.
+    #[serde(default, deserialize_with = "de::one_or_many")]
+    pub table_inf: Vec<TableInf>,
+    /// Fields this crate does not know yet, kept as received.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// `CLASS_INF_LIST` element.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
+pub struct ClassInfList {
+    /// Metadata.
+    #[serde(default, deserialize_with = "de::one_or_many")]
+    pub class_inf: Vec<ClassInf>,
+    /// Fields this crate does not know yet, kept as received.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// `DATA_INF_LIST` element.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
+pub struct DataInfList {
+    /// Values.
+    #[serde(default, deserialize_with = "de::one_or_many")]
+    pub data_inf: Vec<DataInf>,
+    /// Fields this crate does not know yet, kept as received.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// `DATA_INF` element.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]
 pub struct DataInf {
+    /// Request number (`@requestNo`), only in [`StatsDatas`] responses.
+    #[serde(
+        rename = "@requestNo",
+        default,
+        deserialize_with = "de::opt_number",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub request_no: Option<u32>,
     /// Meaning of special characters used in place of numbers, such as `X`.
     #[serde(
         default,
